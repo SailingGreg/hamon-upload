@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MY APP</title>
+</head>
+<body>
+
+<img src="images/house_logo.png" alt="Household Automation">
+<form method="POST" action="/upload-file" enctype="multipart/form-data">
+    <div>
+	<h1>HAMon ETS configuration upload utility </h1>
+        <label>Select the file you would like to upload:</label>
+        <input type="file" name="single_file" />
+    </div>
+    <div>
+        <br>
+        <input type="submit" name="btn_upload_file" value="Upload" />
+    </div>
+</form>
+
+<!--
+<form method="POST" action="/upload-multiple-files" enctype="multipart/form-data">
+    <div>
+        <label>Select the file you would like to upload:</label>
+        <input type="file" name="multiple_files" multiple />
+    </div>
+    <div>
+        <input type="submit" name="btn_upload_multiple_files" value="Upload" />
+    </div>
+</form>
+-->
+
+</body>
+</html>

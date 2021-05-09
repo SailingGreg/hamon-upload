@@ -1,0 +1,11 @@
+{
+  "name": "upload",
+  "version": "1.0.0",
+  "description": "File upload",
+  "main": "upload.js",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "multer": "^1.4.2"
+  }
+}
