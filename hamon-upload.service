@@ -1,0 +1,22 @@
+# 
+# hamon server systemd service configuration file
+# install to /usr/lib/systemd/system/ha-mon.service
+# then systemctl daemon-reload
+# & then systemctl enable hamon.service
+# & then systemctl start hamon.service
+
+[Unit]
+Description=HA File Upload  Service
+After=multi-user.target
+
+[Service]
+Environment=HOME=/home/greg
+Type=idle
+
+# working directory is /home/greg/hamon
+ExecStart=/usr/bin/node /home/greg/hamon-upload/upload.js
+StandardOutput=file:/home/greg/hamon-upload/hamon.log
+StandardError=file:/home/greg/hamon-upload/hamon.err
+
+[Install]
+WantedBy=multi-user.target
