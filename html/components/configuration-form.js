@@ -90,6 +90,11 @@ class ConfigurationForm extends React.Component {
     });
     document.getElementById('configuration-edit-form').addEventListener('submit', (e) => {
       e.preventDefault()
+      const response = window.confirm('Are you sure you want to override hamon.yml with new values? This change is inreversible')
+      if(!response) {
+        return
+      }
+
       const configurationFile = jsyaml.dump(this?.state?.configFile)
       const configurationUploadForm = document.getElementById('configuration-upload-form');
 
