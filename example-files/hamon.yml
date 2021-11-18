@@ -1,0 +1,26 @@
+---
+# Configuration file HAMon
+# copy to hamon.yml and update as appropriate
+title: "The HAMon configuration file"
+influxdb: 2 # influxdb version
+locations:
+  Location-1:
+    name: "office" # the tag used for logging
+    desc: "The office" # the location - not currently used
+    enabled: true
+    dns: ha-office-test.dyndns.org # the DNS entry
+    port: 50002 # Router port
+    device: generic
+    phyAddr: 15.15.15 # the default
+    logging: info
+    config: ga.xml # and the ETS XML export of group addresses
+  Location-2:
+    name: "home"
+    desc: "The home"
+    enabled: true
+    dns: ha-foxways.dyndns.org
+    port: 50002
+    device: generic
+    phyAddr: 1.1.10
+    logging: info
+    config: foxways.xml

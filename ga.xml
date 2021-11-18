@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<GroupAddress-Export xmlns="http://knx.org/xml/ga-export/01">
+  <GroupRange Name="New main group" RangeStart="1" RangeEnd="2047">
+    <GroupRange Name="New middle group" RangeStart="1" RangeEnd="255">
+      <GroupAddress Name="Switch1" Address="0/0/1" DPTs="DPST-1-1" />
+      <GroupAddress Name="Status, Relay Ch1" Address="0/0/2" DPTs="DPST-1-1" />
+      <GroupAddress Name="Switch 2" Address="0/0/3" DPTs="DPST-1-1" />
+      <GroupAddress Name="Status, Relay Ch2" Address="0/0/4" DPTs="DPST-1-1" />
+      <GroupAddress Name="Switch 3" Address="0/0/5" DPTs="DPST-1-1" />
+      <GroupAddress Name="Status, Relay Ch3" Address="0/0/6" DPTs="DPST-1-1" />
+      <GroupAddress Name="Switch 4" Address="0/0/7" DPTs="DPST-1-1" />
+      <GroupAddress Name="Status, Relay Ch4" Address="0/0/8" DPTs="DPST-1-1" />
+    </GroupRange>
+    <GroupRange Name="Heating" RangeStart="256" RangeEnd="511">
+      <GroupAddress Name="Measured temperature" Address="0/1/0" DPTs="DPST-9-1" />
+      <GroupAddress Name="Base setpoint" Address="0/1/1" DPTs="DPST-9-1" />
+      <GroupAddress Name="Heating mode setting" Address="0/1/2" DPTs="DPST-20-102" />
+      <GroupAddress Name="Setpoint shift setting" Address="0/1/3" DPTs="DPST-6-10" />
+      <GroupAddress Name="Command for heat" Address="0/1/4" DPTs="DPST-5-1" />
+      <GroupAddress Name="Setpoint shift feedback" Address="0/1/5" DPTs="DPST-6-10" />
+      <GroupAddress Name="Heating mode status" Address="0/1/6" DPTs="DPST-20-102" />
+      <GroupAddress Name="Target temperature" Address="0/1/7" DPTs="DPST-9-1" />
+    </GroupRange>
+  </GroupRange>
+</GroupAddress-Export>
