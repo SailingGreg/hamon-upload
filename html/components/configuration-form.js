@@ -133,6 +133,9 @@ class ConfigurationForm extends React.Component {
       }, 'Add Location'))
       content.push(e("br", {}), e("br", {}))
       for (const [key, value] of Object.entries(configFile?.locations)) {
+        const currentLocation = this?.state?.configFile.locations[key]
+        const isLocationEnabled = currentLocation['enabled'] 
+        content.push(e("span", { className: `dot ${isLocationEnabled? 'bg-green': ''}` }))
         content.push(e(React.Fragment, null,
           /*#__PURE__*/
           e("h4", { style: { display: 'inline', marginRight: 8 }, key: `${key}-header` }, value['name'])
@@ -146,17 +149,13 @@ class ConfigurationForm extends React.Component {
         content.push(e("button", {
           type: "button",
           onClick: () => {
-            const currentLocation = this?.state?.configFile.locations[key]
-            currentLocation['enabled'] = !currentLocation['enabled']
+            currentLocation['enabled'] = !isLocationEnabled
             const newConfigFile = Object.assign({}, this?.state?.configFile);
-            this.setState({ configFile: newConfigFile, currentlyEdited: key })
+            this.setState({ configFile: newConfigFile })
           }
-        }, 'Toggle'))
+        }, isLocationEnabled ? 'Disable' : 'Enable'))
 
         content.push(e("br", {}))
-
-        // content.push(e("button", { 
-        // }, 'Toggle'))
 
         for (const [keyLocation, valueLocation] of Object.entries(value)) {
           if (this?.state?.currentlyEdited !== key) {

@@ -1,0 +1,12 @@
+.dot {
+    height: 12px;
+    width: 12px;
+    background-color: lightgray;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+.bg-green {
+    background-color: lightgreen;
+}
