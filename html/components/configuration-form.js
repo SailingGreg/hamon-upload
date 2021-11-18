@@ -121,6 +121,7 @@ class ConfigurationForm extends React.Component {
         e("h3", { style: { marginRight: 8, display: 'inline' } }, 'Locations:')
       ))
       content.push(e("button", {
+        type: "button",
         onClick: () => {
           const newLocation = defaultLocation
           const locationsLength = Object.keys(this?.state?.configFile?.locations)?.length
@@ -137,11 +138,13 @@ class ConfigurationForm extends React.Component {
           e("h4", { style: { display: 'inline', marginRight: 8 }, key: `${key}-header` }, value['name'])
         ))
         content.push(e("button", {
+          type: "button",
           style: { marginRight: 8 },
           onClick: () => this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
         }, 'Edit'))
 
         content.push(e("button", {
+          type: "button",
           onClick: () => {
             const currentLocation = this?.state?.configFile.locations[key]
             currentLocation['enabled'] = !currentLocation['enabled']
