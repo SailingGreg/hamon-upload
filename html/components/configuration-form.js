@@ -5,7 +5,6 @@ const e = React.createElement;
 const fieldsDefinition = {
   'name': {
     type: 'text',
-    readOnly: true
   },
   'desc': {
     type: 'text',
@@ -33,6 +32,18 @@ const fieldsDefinition = {
   },
 }
 
+const defaultLocation = {
+  'name': 'new-location',
+  'desc': '',
+  'enabled': true,
+  'dns': '',
+  'port': '',
+  'device': '',
+  'phyAddr': '',
+  'logging': '',
+  'config': '',
+}
+
 function uploadFile(data) {
   // define data and connections
   var blob = new Blob([data]);
@@ -57,7 +68,7 @@ function uploadFile(data) {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null };
+    this.state = { configFile: null, currentlyEdited: null };
   }
 
   componentDidMount() {
@@ -105,22 +116,63 @@ class ConfigurationForm extends React.Component {
     const content = []
     const configFile = this?.state?.configFile
     if (configFile) {
+      content.push(e(React.Fragment, null,
+        /*#__PURE__*/
+        e("h3", { style: { marginRight: 8, display: 'inline' } }, 'Locations:')
+      ))
+      content.push(e("button", {
+        onClick: () => {
+          const newLocation = defaultLocation
+          const locationsLength = Object.keys(this?.state?.configFile?.locations)?.length
+          let newConfigFile = Object.assign({}, this?.state?.configFile);
+          const newLocationKey = `Location-${locationsLength + 1}`
+          newConfigFile.locations[newLocationKey] = Object.assign({}, newLocation);
+          this.setState({ configFile: newConfigFile, currentlyEdited: newLocationKey })
+        }
+      }, 'Add Location'))
+      content.push(e("br", {}), e("br", {}))
       for (const [key, value] of Object.entries(configFile?.locations)) {
         content.push(e(React.Fragment, null,
           /*#__PURE__*/
-          e("h4", { key: `${key}-header` }, key)
+          e("h4", { style: { display: 'inline', marginRight: 8 }, key: `${key}-header` }, value['name'])
         ))
+        content.push(e("button", {
+          style: { marginRight: 8 },
+          onClick: () => this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
+        }, 'Edit'))
+
+        content.push(e("button", {
+          onClick: () => {
+            const currentLocation = this?.state?.configFile.locations[key]
+            currentLocation['enabled'] = !currentLocation['enabled']
+            const newConfigFile = Object.assign({}, this?.state?.configFile);
+            this.setState({ configFile: newConfigFile, currentlyEdited: key })
+          }
+        }, 'Toggle'))
+
+        content.push(e("br", {}))
+
+        // content.push(e("button", { 
+        // }, 'Toggle'))
+
         for (const [keyLocation, valueLocation] of Object.entries(value)) {
-          console.log('keyLocation', keyLocation)
+          if (this?.state?.currentlyEdited !== key) {
+            // THIS LOCATION IS NOT CURRENTLY EDITED, DONT SHOW FIELDS
+            continue
+          }
           const fieldDefinition = fieldsDefinition[keyLocation]
           if (!fieldDefinition) {
             console.error('NO FIELD DEF')
             continue
           }
-
-          content.push(e(React.Fragment, null,
+          if (fieldDefinition.hidden) {
+            // THIS FIELD IS HIDDEN, DONT SHOW
+            continue
+          }
+          content.push(e('div', { style: { marginTop: 8 } },
             /*#__PURE__*/
             e("label", {
+              style: { marginRight: 8, marginTop: 8, },
               key: `${key}-${keyLocation}-label`,
               htmlFor: `${key}-${keyLocation}`
             }, keyLocation),
@@ -157,9 +209,6 @@ class ConfigurationForm extends React.Component {
           key: `${key}-spacer-main`
         }))
       }
-
-      content.push(e("button", { 
-      }, 'Add Location'))
       content.push(e("button", {
         type: 'submit'
       }, 'Save Configuration'))

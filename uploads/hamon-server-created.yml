@@ -2,7 +2,7 @@ title: The HAMon configuration file
 influxdb: 2
 locations:
   Location-1:
-    name: officesadas
+    name: office
     desc: The office
     enabled: true
     dns: ha-office-test.dyndns.org
