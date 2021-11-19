@@ -37,7 +37,6 @@ function checkCookie(req, res) {
 app.post('/upload-configuration-file', (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
-  console.log('req?.files?', req?.files)
   if (!file) {
     res.json({ success: false, msg: "File was not found" });
     return;
