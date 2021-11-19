@@ -114,7 +114,6 @@ class ConfigurationForm extends React.Component {
     if (configFile) {
       content.push(e("div", { style: { marginBottom: 8 } },
         e(React.Fragment, null,
-          /*#__PURE__*/
           e("h3", { style: { marginRight: 8, display: 'inline' } }, 'Locations:')
         ),
         e("button", {
@@ -181,13 +180,11 @@ class ConfigurationForm extends React.Component {
             continue
           }
           content.push(e('div', { style: { marginBottom: 8 } },
-            /*#__PURE__*/
             e("label", {
               style: { marginRight: 8, marginTop: 8, },
               key: `${key}-${keyLocation}-label`,
               htmlFor: `${key}-${keyLocation}`
             }, keyLocation),
-            /*#__PURE__*/
             e("input", {
               id: `${key}-${keyLocation}`,
               key: `${key}-${keyLocation}`,
@@ -208,6 +205,7 @@ class ConfigurationForm extends React.Component {
               onChange: (e) => {
                 this.setState(prevState => {
                   let newConfigFile = Object.assign({}, prevState.configFile);
+                  console.log('e?.target?.value',  e?.target?.value)
                   newConfigFile.locations[key][keyLocation] = e?.target?.value
                   return { config: newConfigFile };
                 })
