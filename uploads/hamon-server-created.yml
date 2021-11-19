@@ -21,3 +21,13 @@ locations:
     phyAddr: 1.1.10
     logging: info
     config: foxways.xml
+  Location-3:
+    name: new-locationdsadadsa
+    desc: ''
+    enabled: true
+    dns: ''
+    port: ''
+    device: ''
+    phyAddr: ''
+    logging: ''
+    config: ''

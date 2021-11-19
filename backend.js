@@ -34,7 +34,7 @@ const storage = multer.diskStorage({
   }
 });
 
-app.post('/upload-file', (req, res) => {
+app.post('/upload-configuration-file', (req, res) => {
   // 'profile_pic' is the name of our file input field in the HTML form
   // let upload = multer({ storage: storage, fileFilter: helpers.imageFilter }).single('single_file');
 
@@ -71,6 +71,26 @@ app.post('/upload-file', (req, res) => {
   //     // Display uploaded image for user validation
   //     res.send(`<h1>HAMon ETS File upload</h1>You have uploaded the following file: ${req.file.path} <br><br><a href="./">Upload another file</a>`);
   // });
+});
+
+
+
+app.post('/upload-location-configuration-file', (req, res) => {
+  // 'profile_pic' is the name of our file input field in the HTML form
+  // let upload = multer({ storage: storage, fileFilter: helpers.imageFilter }).single('single_file');
+
+  const file = req?.files?.configFile
+
+  console.log('file', file)
+
+  if (!file) {
+    res.send("File was not found");
+    return;
+  }
+
+  fs.writeFileSync(__dirname + '/uploads/hamon-server-created.yml', file?.data);
+
+  return res.send('works');
 });
 
 app.get('/load-configuration-file', (req, res) => {

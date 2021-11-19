@@ -2,6 +2,9 @@
 
 const e = React.createElement;
 
+const UPLOAD_CONFIGURATION_ENDPOINT = '/upload-configuration-file'
+const UPLOAD_LOCATION_CONFIGURATION_ENDPOINT = '/upload-location-configuration-file'
+
 const fieldsDefinition = {
   'name': {
     type: 'text',
@@ -32,7 +35,7 @@ const fieldsDefinition = {
   },
 }
 
-const defaultLocation = {
+const defaultLocationConfig = {
   'name': 'new-location',
   'desc': '',
   'enabled': true,
@@ -44,31 +47,31 @@ const defaultLocation = {
   'config': '',
 }
 
-function uploadFile(data) {
-  // define data and connections
+function uploadFile(data, endpoint) {
   var blob = new Blob([data]);
-  var url = URL.createObjectURL(blob);
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', '/upload-file', true);
-  // xhr.setRequestHeader("Content-Type", "application/x-yaml");
-  // define new form
+  xhr.open('POST', endpoint, true);
   var formData = new FormData();
   formData.append('configFile', blob, 'hamon.yml');
-
-  // action after uploading happens
   xhr.onload = function (e) {
     console.log("File uploading completed!");
   };
-
-  // do the uploading
   console.log("File uploading started!");
   xhr.send(formData);
+}
+
+function removeItemFromArray(arr, value) {
+  var index = arr.indexOf(value);
+  if (index > -1) {
+    arr.splice(index, 1);
+  }
+  return arr;
 }
 
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null };
+    this.state = { configFile: null, currentlyEdited: null, removableConfigs: [] };
   }
 
   componentDidMount() {
@@ -84,31 +87,19 @@ class ConfigurationForm extends React.Component {
       const files = e?.target?.elements[0].files
       files[0].text().then(result => {
         const configurationFileParsed = jsyaml.load(result)
-        console.log('configurationFileParsed', configurationFileParsed)
         this.setState({ configFile: configurationFileParsed })
       })
     });
     document.getElementById('configuration-edit-form').addEventListener('submit', (e) => {
       e.preventDefault()
       const response = window.confirm('Are you sure you want to override hamon.yml with new values? This change is inreversible')
-      if(!response) {
+      if (!response) {
         return
       }
 
       const configurationFile = jsyaml.dump(this?.state?.configFile)
-      const configurationUploadForm = document.getElementById('configuration-upload-form');
-
-      uploadFile(configurationFile)
-
-      // fetch("/upload-file", {
-      //   method: "POST",
-      //   headers: { 'Content-Type': 'multipart/form-data' },
-      //   body: {
-      //     file: JSON.stringify(configurationFile)
-      //   }
-      // }).then(res => {
-      //   console.log("Request complete! response:", res);
-      // });
+      uploadFile(configurationFile, UPLOAD_CONFIGURATION_ENDPOINT)
+      this.setState({ removableConfigs: [] })
     });
   }
 
@@ -121,46 +112,59 @@ class ConfigurationForm extends React.Component {
     const content = []
     const configFile = this?.state?.configFile
     if (configFile) {
-      content.push(e(React.Fragment, null,
-        /*#__PURE__*/
-        e("h3", { style: { marginRight: 8, display: 'inline' } }, 'Locations:')
-      ))
-      content.push(e("button", {
-        type: "button",
-        onClick: () => {
-          const newLocation = defaultLocation
-          const locationsLength = Object.keys(this?.state?.configFile?.locations)?.length
-          let newConfigFile = Object.assign({}, this?.state?.configFile);
-          const newLocationKey = `Location-${locationsLength + 1}`
-          newConfigFile.locations[newLocationKey] = Object.assign({}, newLocation);
-          this.setState({ configFile: newConfigFile, currentlyEdited: newLocationKey })
-        }
-      }, 'Add Location'))
-      content.push(e("br", {}), e("br", {}))
-      for (const [key, value] of Object.entries(configFile?.locations)) {
-        const currentLocation = this?.state?.configFile.locations[key]
-        const isLocationEnabled = currentLocation['enabled'] 
-        content.push(e("span", { className: `dot ${isLocationEnabled? 'bg-green': ''}` }))
-        content.push(e(React.Fragment, null,
+      content.push(e("div", { style: { marginBottom: 8 } },
+        e(React.Fragment, null,
           /*#__PURE__*/
-          e("h4", { style: { display: 'inline', marginRight: 8 }, key: `${key}-header` }, value['name'])
-        ))
-        content.push(e("button", {
-          type: "button",
-          style: { marginRight: 8 },
-          onClick: () => this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
-        }, 'Edit'))
-
-        content.push(e("button", {
+          e("h3", { style: { marginRight: 8, display: 'inline' } }, 'Locations:')
+        ),
+        e("button", {
           type: "button",
           onClick: () => {
-            currentLocation['enabled'] = !isLocationEnabled
-            const newConfigFile = Object.assign({}, this?.state?.configFile);
-            this.setState({ configFile: newConfigFile })
+            const newLocationConfig = defaultLocationConfig
+            const locationsLength = Object.keys(this?.state?.configFile?.locations)?.length
+            let newConfigFile = Object.assign({}, this?.state?.configFile);
+            const newLocationConfigKey = `Location-${locationsLength + 1}`
+            const newRemovableConfigs = [...this?.state?.removableConfigs, newLocationConfigKey]
+            newConfigFile.locations[newLocationConfigKey] = Object.assign({}, newLocationConfig);
+            this.setState({ configFile: newConfigFile, currentlyEdited: newLocationConfigKey, removableConfigs: newRemovableConfigs })
           }
-        }, isLocationEnabled ? 'Disable' : 'Enable'))
+        }, 'Add Location'),
+      ))
 
-        content.push(e("br", {}))
+      for (const [key, value] of Object.entries(configFile?.locations)) {
+        const currentLocation = this?.state?.configFile.locations[key]
+        const isLocationEnabled = currentLocation['enabled']
+        const removableConfigs = this.state.removableConfigs
+
+        content.push(e("div", { style: { marginBottom: 8 } },
+          e("span", { className: `dot ${isLocationEnabled ? 'bg-green' : ''}` }),
+          e("h4", { style: { display: 'inline', marginRight: 8 }, key: `${key}-header` }, value['name']),
+          e("button", {
+            type: "button",
+            style: { marginRight: 8 },
+            onClick: () => this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
+          }, 'Edit'),
+          e("button", {
+            type: "button",
+            style: { marginRight: 8 },
+            onClick: () => {
+              currentLocation['enabled'] = !isLocationEnabled
+              const newConfigFile = Object.assign({}, this?.state?.configFile);
+              this.setState({ configFile: newConfigFile })
+            }
+          }, isLocationEnabled ? 'Disable' : 'Enable'),
+          // allow removal of last location, but only if it was created recently
+          removableConfigs.includes(key) && removableConfigs[removableConfigs.length - 1] === key && e("button", {
+            type: "button",
+            style: { marginRight: 8, color: 'crimson' },
+            onClick: () => {
+              delete this?.state?.configFile.locations[key]
+              let newConfigFile = Object.assign({}, this?.state?.configFile);
+              const newRemovableConfigs = removeItemFromArray(this?.state?.removableConfigs, key)
+              this.setState({ configFile: newConfigFile, removableConfigs: [...newRemovableConfigs] })
+            }
+          }, 'Remove'),
+        ))
 
         for (const [keyLocation, valueLocation] of Object.entries(value)) {
           if (this?.state?.currentlyEdited !== key) {
@@ -176,7 +180,7 @@ class ConfigurationForm extends React.Component {
             // THIS FIELD IS HIDDEN, DONT SHOW
             continue
           }
-          content.push(e('div', { style: { marginTop: 8 } },
+          content.push(e('div', { style: { marginBottom: 8 } },
             /*#__PURE__*/
             e("label", {
               style: { marginRight: 8, marginTop: 8, },
@@ -212,9 +216,6 @@ class ConfigurationForm extends React.Component {
             e("br", {}),
           ))
         }
-        content.push(e("br", {
-          key: `${key}-spacer-main`
-        }))
       }
       content.push(e("button", {
         type: 'submit'
