@@ -42,7 +42,7 @@ const defaultLocationConfig = {
   'dns': '',
   'port': '3671',
   'device': 'generic',
-  'phyAddr': '15.15.15.',
+  'phyAddr': '15.15.15',
   'logging': 'info',
   'config': '',
 }
@@ -130,6 +130,7 @@ class ConfigurationForm extends React.Component {
         ),
         e("button", {
           type: "button",
+          style: { marginRight: 8 },
           onClick: () => {
             const newLocationConfig = defaultLocationConfig
             const locationsLength = Object.keys(this?.state?.configFile?.locations)?.length
@@ -140,6 +141,9 @@ class ConfigurationForm extends React.Component {
             this.setState({ configFile: newConfigFile, currentlyEdited: newLocationConfigKey, removableConfigs: newRemovableConfigs })
           }
         }, 'Add Location'),
+        e("button", {
+          type: 'submit'
+        }, 'Save Configuration')
       ))
 
       for (const [key, value] of Object.entries(configFile?.locations)) {
@@ -164,6 +168,10 @@ class ConfigurationForm extends React.Component {
               this.setState({ configFile: newConfigFile })
             }
           }, isLocationEnabled ? 'Disable' : 'Enable'),
+          e("button", {
+            style: { marginRight: 8 },
+            type: 'submit'
+          }, 'Save'),
           // allow removal of last location, but only if it was created recently
           removableConfigs.includes(key) && removableConfigs[removableConfigs.length - 1] === key && e("button", {
             type: "button",
@@ -215,21 +223,22 @@ class ConfigurationForm extends React.Component {
               key: `${key}-${keyLocation}-file-upload`,
               type: 'file',
               onChange: (e) => {
-                this.setState(prevState => {
-                  let newConfigFile = Object.assign({}, prevState.configFile);
-                  console.log('e?.target?.value', e?.target?.value)
-                  newConfigFile.locations[key][keyLocation] = e?.target?.value
-                  return { config: newConfigFile };
-                })
+                console.log('e?.target?.files', e?.target?.files)
+                const file = e?.target?.files[0]
+                if (file) {
+                  uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT)
+                  this.setState(prevState => {
+                    let newConfigFile = Object.assign({}, prevState.configFile);
+                    newConfigFile.locations[key][keyLocation] = file?.name
+                    return { config: newConfigFile };
+                  })
+                }
               }
             }),
             e("br", {}),
           ))
         }
       }
-      content.push(e("button", {
-        type: 'submit'
-      }, 'Save Configuration'))
     }
 
     return e(React.Fragment, null,

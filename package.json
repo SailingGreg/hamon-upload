@@ -5,8 +5,8 @@
   "main": "backend.js",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon backend.js",
-    "start": "node backend.js"
+    "dev": "yarn run nodemon backend.js",
+    "start": "yarn run node backend.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.6",
