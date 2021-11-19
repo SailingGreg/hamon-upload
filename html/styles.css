@@ -10,3 +10,38 @@
 .bg-green {
     background-color: lightgreen;
 }
+
+.configuration-location-wrapper {
+  margin-bottom: 8px;
+}
+
+.configuration-location-title {
+  display: inline;
+  margin-right: 8px;
+}
+
+.configuration-location-action-button {
+  margin-right: 8px;
+}
+
+.configuration-header-wrapper {
+  margin-bottom: 8px;
+}
+
+.configuration-header-title {
+  margin-right: 8px;
+  display: inline;
+}
+
+.configuration-header-action-button {
+  margin-right: 8px;
+}
+
+.configuration-location-content-wrapper {
+  margin-bottom: 8px;
+}
+
+.configuration-location-content-label {
+  margin-right: 8px;
+  margin-bottom: 8px;
+}

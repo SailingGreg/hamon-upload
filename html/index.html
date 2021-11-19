@@ -7,13 +7,12 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Load React. -->
   <!-- Note: when deploying, replace "development.js" with "production.min.js". -->
-  <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
-
-  <script type="module" src="/components/configuration-form.js"></script>
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
   <!-- Load our React component. -->
-  <!-- <script src="/scripts/js-yaml.min.js"></script> -->
-  <script type="module" src="/scripts/js-yaml.js"></script>
+  <script type="module" src="/components/configuration-form.js"></script>
+  <!-- Note: when deploying, replace ".js" with "min.js". -->
+  <script type="module" src="/scripts/js-yaml.min.js"></script>
   <script type="module" src="/main.js"></script>
 </head>
 
@@ -22,17 +21,6 @@
     <img src="images/house_logo.png" alt="Household Automation" style="width:25px;height:25px;margin-right: 10px;">
     <p>HAMon ETS configuration upload utility </p>
   </div>
-  <!--method="POST"  <action="/upload-file"  -->
-  <form enctype="multipart/form-data" name="configuration-browse-form" id='configuration-browse-form'>
-    <!-- <div>
-      <label>Select the file you would like to upload:</label>
-      <input type="file" />
-    </div> -->
-    <!-- <div>
-      <br>
-      <input type="submit" value="Upload" />
-    </div> -->
-  </form>
   <form name="configuration-edit-form" id='configuration-edit-form'>
   </form>
 

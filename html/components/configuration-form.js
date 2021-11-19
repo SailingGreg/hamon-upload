@@ -1,39 +1,12 @@
 'use strict';
+import uploadFile from '../utils/upload-file.js';
+import fieldsDefinition from '../utils/fields-definition.js';
+import removeItemFromArray from '../utils/remove-item-from-array.js';
 
 const e = React.createElement;
 
-const UPLOAD_CONFIGURATION_ENDPOINT = '/upload-configuration-file'
-const UPLOAD_LOCATION_CONFIGURATION_ENDPOINT = '/upload-location-configuration-file'
-
-const fieldsDefinition = {
-  'name': {
-    type: 'text',
-  },
-  'desc': {
-    type: 'text',
-  },
-  'enabled': {
-    type: 'text',
-  },
-  'dns': {
-    type: 'text',
-  },
-  'port': {
-    type: 'text',
-  },
-  'device': {
-    type: 'text',
-  },
-  'phyAddr': {
-    type: 'text',
-  },
-  'logging': {
-    type: 'text',
-  },
-  'config': {
-    type: 'file',
-  },
-}
+const UPLOAD_CONFIGURATION_ENDPOINT = '/upload-configuration-file';
+const UPLOAD_LOCATION_CONFIGURATION_ENDPOINT = '/upload-location-configuration-file';
 
 const defaultLocationConfig = {
   'name': 'new-location',
@@ -45,35 +18,6 @@ const defaultLocationConfig = {
   'phyAddr': '15.15.15',
   'logging': 'info',
   'config': '',
-}
-
-function uploadFile(data, endpoint) {
-  var blob = new Blob([data]);
-  var formData = new FormData();
-  formData.append('configFile', blob, 'hamon.yml');
-
-  fetch(endpoint, {
-    body: formData,
-    method: "post",
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) {
-        window.alert(data.error)
-        return
-      }
-      if (data.msg) {
-        window.alert(data.msg)
-      }
-    });
-}
-
-function removeItemFromArray(arr, value) {
-  var index = arr.indexOf(value);
-  if (index > -1) {
-    arr.splice(index, 1);
-  }
-  return arr;
 }
 
 class ConfigurationForm extends React.Component {
@@ -94,14 +38,6 @@ class ConfigurationForm extends React.Component {
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'auto' }), 100);
       });
 
-    document.getElementById('configuration-browse-form').addEventListener('submit', (e) => {
-      e.preventDefault()
-      const files = e?.target?.elements[0].files
-      files[0].text().then(result => {
-        const configurationFileParsed = jsyaml.load(result)
-        this.setState({ configFile: configurationFileParsed })
-      })
-    });
     document.getElementById('configuration-edit-form').addEventListener('submit', (e) => {
       e.preventDefault()
       const response = window.confirm('Are you sure you want to override hamon.yml with new values? This change is inreversible')
@@ -116,7 +52,6 @@ class ConfigurationForm extends React.Component {
   }
 
   componentWillUnmount() {
-    document.getElementById('configuration-browse-form').removeEventListener('submit')
     document.getElementById('configuration-edit-form').removeEventListener('submit')
   }
 
@@ -124,13 +59,11 @@ class ConfigurationForm extends React.Component {
     const content = []
     const configFile = this?.state?.configFile
     if (configFile) {
-      content.push(e("div", { style: { marginBottom: 8 } },
-        e(React.Fragment, null,
-          e("h3", { style: { marginRight: 8, display: 'inline' } }, 'Locations:')
-        ),
+      content.push(e("div", { className: 'configuration-header-wrapper' },
+        e("h3", { className: 'configuration-header-title' }, 'Locations:'),
         e("button", {
           type: "button",
-          style: { marginRight: 8 },
+          className: 'configuration-header-action-button',
           onClick: () => {
             const newLocationConfig = defaultLocationConfig
             const locationsLength = Object.keys(this?.state?.configFile?.locations)?.length
@@ -141,9 +74,7 @@ class ConfigurationForm extends React.Component {
             this.setState({ configFile: newConfigFile, currentlyEdited: newLocationConfigKey, removableConfigs: newRemovableConfigs })
           }
         }, 'Add Location'),
-        e("button", {
-          type: 'submit'
-        }, 'Save Configuration')
+        e("button", { className: 'configuration-header-action-button', type: 'submit' }, 'Save Configuration')
       ))
 
       for (const [key, value] of Object.entries(configFile?.locations)) {
@@ -151,31 +82,29 @@ class ConfigurationForm extends React.Component {
         const isLocationEnabled = currentLocation['enabled']
         const removableConfigs = this.state.removableConfigs
 
-        content.push(e("div", { style: { marginBottom: 8 } },
+        content.push(e("div", { className: 'configuration-location-wrapper' },
           e("span", { className: `dot ${isLocationEnabled ? 'bg-green' : ''}` }),
-          e("h4", { style: { display: 'inline', marginRight: 8 }, key: `${key}-header` }, value['name']),
+          e("h4", { className: 'configuration-location-title', key: `${key}-header` }, value['name']),
           e("button", {
             type: "button",
-            style: { marginRight: 8 },
+            className: 'configuration-location-action-button',
             onClick: () => this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
           }, 'Edit'),
           e("button", {
             type: "button",
-            style: { marginRight: 8 },
+            className: 'configuration-location-action-button',
             onClick: () => {
               currentLocation['enabled'] = !isLocationEnabled
               const newConfigFile = Object.assign({}, this?.state?.configFile);
               this.setState({ configFile: newConfigFile })
             }
           }, isLocationEnabled ? 'Disable' : 'Enable'),
-          e("button", {
-            style: { marginRight: 8 },
-            type: 'submit'
-          }, 'Save'),
+          e("button", { className: 'configuration-location-action-button', type: 'submit' }, 'Save'),
           // allow removal of last location, but only if it was created recently
           removableConfigs.includes(key) && removableConfigs[removableConfigs.length - 1] === key && e("button", {
             type: "button",
-            style: { marginRight: 8, color: 'crimson' },
+            className: 'configuration-location-action-button',
+            style: { color: 'crimson' },
             onClick: () => {
               delete this?.state?.configFile.locations[key]
               let newConfigFile = Object.assign({}, this?.state?.configFile);
@@ -199,9 +128,10 @@ class ConfigurationForm extends React.Component {
             // THIS FIELD IS HIDDEN, DONT SHOW
             continue
           }
-          content.push(e('div', { style: { marginBottom: 8 } },
+
+          content.push(e('div', { className: 'configuration-location-content-wrapper' },
             e("label", {
-              style: { marginRight: 8, marginTop: 8, },
+              className: 'configuration-location-content-label',
               key: `${key}-${keyLocation}-label`,
               htmlFor: `${key}-${keyLocation}`
             }, keyLocation),
@@ -223,7 +153,6 @@ class ConfigurationForm extends React.Component {
               key: `${key}-${keyLocation}-file-upload`,
               type: 'file',
               onChange: (e) => {
-                console.log('e?.target?.files', e?.target?.files)
                 const file = e?.target?.files[0]
                 if (file) {
                   uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT)
@@ -235,15 +164,12 @@ class ConfigurationForm extends React.Component {
                 }
               }
             }),
-            e("br", {}),
           ))
         }
       }
     }
 
-    return e(React.Fragment, null,
-      content
-    );
+    return e(React.Fragment, null, content);
   }
 }
 
