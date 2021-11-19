@@ -49,15 +49,23 @@ const defaultLocationConfig = {
 
 function uploadFile(data, endpoint) {
   var blob = new Blob([data]);
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', endpoint, true);
   var formData = new FormData();
   formData.append('configFile', blob, 'hamon.yml');
-  xhr.onload = function (e) {
-    console.log("File uploading completed!");
-  };
-  console.log("File uploading started!");
-  xhr.send(formData);
+
+  fetch(endpoint, {
+    body: formData,
+    method: "post",
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        window.alert(data.error)
+        return
+      }
+      if (data.msg) {
+        window.alert(data.msg)
+      }
+    });
 }
 
 function removeItemFromArray(arr, value) {
@@ -78,6 +86,10 @@ class ConfigurationForm extends React.Component {
     fetch('/load-configuration-file')
       .then(response => response.json())
       .then(data => {
+        if (data.error) {
+          window.alert(data.error)
+          return
+        }
         this.setState({ configFile: data })
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'auto' }), 100);
       });
@@ -205,7 +217,7 @@ class ConfigurationForm extends React.Component {
               onChange: (e) => {
                 this.setState(prevState => {
                   let newConfigFile = Object.assign({}, prevState.configFile);
-                  console.log('e?.target?.value',  e?.target?.value)
+                  console.log('e?.target?.value', e?.target?.value)
                   newConfigFile.locations[key][keyLocation] = e?.target?.value
                   return { config: newConfigFile };
                 })

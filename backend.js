@@ -8,6 +8,7 @@
 const express = require('express');
 const path = require('path');
 const fileupload = require("express-fileupload");
+const cookieParser = require("cookie-parser");
 const yaml = require('js-yaml');
 const app = express();
 const port = process.env.PORT || 8080;
@@ -19,26 +20,37 @@ const CONFIGURATION_FILE_NAME = 'hamon.yml'
 const LOCATION_CONFIGURATION_FILES_LOCATION = __dirname + '/uploads/'
 // SETUP THIS ONLY IF WE ARE READING CONFIG FROM OTHER PLACE, FOR EXAMPLE WE WANT USER TO NOT OVERRIDE BASIC CONFIGURATION AND SAVE IT SOMEWHERE ELSE
 const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
+const SECURITY_COOKIE_NAME = 'grafana_session'
 //--- !!!! END OF CONFIGURATION !!!! ---//
 
 app.use(fileupload());
+app.use(cookieParser());
 app.use(express.static(__dirname + '/html'));
 
+function checkCookie(req, res) {
+  if (!req.cookies[SECURITY_COOKIE_NAME]) {
+    // !IMPORTANT TODO: ADDITIONAL COOKIE CHECK, CANNOT DO THIS WITH PROVIDED DATA, CHECKING ONLY IF COOKIE EXISTS
+    return res.json({ error: 'You are not logged in' })
+  }
+}
+
 app.post('/upload-configuration-file', (req, res) => {
+  checkCookie(req, res)
   const file = req?.files?.configFile
   if (!file) {
-    res.send("File was not found");
+    res.json({ success: false, msg: "File was not found" });
     return;
   }
 
   fs.writeFileSync(`${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, file?.data);
-  return res.send('File saved successfully');
+  return res.json({ success: true, msg: "File saved successfully" });
 });
 
 app.post('/upload-location-configuration-file', (req, res) => {
+  checkCookie(req, res)
   const file = req?.files?.configFile
   if (!file) {
-    res.send("File was not found");
+    res.json({ success: true, msg: "File was not found" });
     return;
   }
 
@@ -47,6 +59,7 @@ app.post('/upload-location-configuration-file', (req, res) => {
 });
 
 app.get('/load-configuration-file', (req, res) => {
+  checkCookie(req, res)
   const configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
   return res.json(configFile)
 });

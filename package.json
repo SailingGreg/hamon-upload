@@ -9,6 +9,7 @@
     "start": "node backend.js"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.6",
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
     "js-yaml": "^4.1.0"
