@@ -40,10 +40,10 @@ const defaultLocationConfig = {
   'desc': '',
   'enabled': true,
   'dns': '',
-  'port': '',
-  'device': '',
-  'phyAddr': '',
-  'logging': '',
+  'port': '3671',
+  'device': 'generic',
+  'phyAddr': '15.15.15.',
+  'logging': 'info',
   'config': '',
 }
 
@@ -231,7 +231,6 @@ class ConfigurationForm extends React.Component {
         type: 'submit'
       }, 'Save Configuration'))
     }
-
 
     return e(React.Fragment, null,
       content
