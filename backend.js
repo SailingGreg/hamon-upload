@@ -15,11 +15,13 @@ const port = process.env.PORT || 8080;
 const fs = require('fs');
 
 //--- !!!! CONFIGURATION !!!! ---//
-const CONFIGURATION_FILE_LOCATION = __dirname + '/uploads'
+const CONFIGURATION_FILE_LOCATION = __dirname + '/../hamon'
+// const CONFIGURATION_FILE_LOCATION = __dirname + '/uploads'
 const CONFIGURATION_FILE_NAME = 'hamon.yml'
 const LOCATION_CONFIGURATION_FILES_LOCATION = __dirname + '/uploads/'
 // SETUP THIS ONLY IF WE ARE READING CONFIG FROM OTHER PLACE, FOR EXAMPLE WE WANT USER TO NOT OVERRIDE BASIC CONFIGURATION AND SAVE IT SOMEWHERE ELSE
-const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
+const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
+// const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
 const SECURITY_COOKIE_NAME = 'grafana_session'
 //--- !!!! END OF CONFIGURATION !!!! ---//
 

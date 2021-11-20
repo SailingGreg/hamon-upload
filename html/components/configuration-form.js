@@ -111,7 +111,7 @@ class ConfigurationForm extends React.Component {
               const newRemovableConfigs = removeItemFromArray(this?.state?.removableConfigs, key)
               this.setState({ configFile: newConfigFile, removableConfigs: [...newRemovableConfigs] })
             }
-          }, 'Remove'),
+          }, 'Cancel'),
         ))
 
         for (const [keyLocation, valueLocation] of Object.entries(value)) {
