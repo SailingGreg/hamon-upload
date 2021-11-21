@@ -77,6 +77,7 @@ class ConfigurationForm extends React.Component {
         e("button", { className: 'configuration-header-action-button', type: 'submit' }, 'Save Configuration')
       ))
 
+      // display the locations?
       for (const [key, value] of Object.entries(configFile?.locations)) {
         const currentLocation = this?.state?.configFile.locations[key]
         const isLocationEnabled = currentLocation['enabled']
@@ -99,7 +100,7 @@ class ConfigurationForm extends React.Component {
               this.setState({ configFile: newConfigFile })
             }
           }, isLocationEnabled ? 'Disable' : 'Enable'),
-          e("button", { className: 'configuration-location-action-button', type: 'submit' }, 'Save'),
+          e("button", { className: 'configuration-location-action-button', type: 'submit' }, 'Update'),
           // allow removal of last location, but only if it was created recently
           removableConfigs.includes(key) && removableConfigs[removableConfigs.length - 1] === key && e("button", {
             type: "button",

@@ -15,6 +15,8 @@ const port = process.env.PORT || 8080;
 const fs = require('fs');
 
 //--- !!!! CONFIGURATION !!!! ---//
+// Note this is where the configuration and location files reside
+// the location .xml need to be moved here
 const CONFIGURATION_FILE_LOCATION = __dirname + '/../hamon'
 // const CONFIGURATION_FILE_LOCATION = __dirname + '/uploads'
 const CONFIGURATION_FILE_NAME = 'hamon.yml'
