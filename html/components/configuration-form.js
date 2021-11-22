@@ -82,6 +82,7 @@ class ConfigurationForm extends React.Component {
         const currentLocation = this?.state?.configFile.locations[key]
         const isLocationEnabled = currentLocation['enabled']
         const removableConfigs = this.state.removableConfigs
+        const isCurrentlyEdited = this.state?.currentlyEdited === key
 
         content.push(e("div", { className: 'configuration-location-wrapper' },
           e("span", { className: `dot ${isLocationEnabled ? 'bg-green' : ''}` }),
@@ -90,7 +91,7 @@ class ConfigurationForm extends React.Component {
             type: "button",
             className: 'configuration-location-action-button',
             onClick: () => this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
-          }, 'Edit'),
+          }, isCurrentlyEdited ? 'Cancel Edit' : 'Edit'),
           e("button", {
             type: "button",
             className: 'configuration-location-action-button',
