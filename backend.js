@@ -8,6 +8,7 @@
 const express = require('express');
 const fileupload = require("express-fileupload");
 const cookieParser = require("cookie-parser");
+const bodyParser = require('body-parser');
 const yaml = require('js-yaml');
 const app = express();
 const port = process.env.PORT || 8080;
@@ -29,6 +30,7 @@ const SECURITY_COOKIE_NAME = 'grafana_session'
 app.use(fileupload());
 app.use(cookieParser());
 app.use(express.static(__dirname + '/html'));
+app.use(bodyParser.json());
 
 function checkCookie(req, res) {
   if (!req.cookies[SECURITY_COOKIE_NAME]) {
@@ -52,18 +54,38 @@ function saveFile(basePath, fileName, file) {
 
 app.post('/upload-configuration-file', (req, res) => {
   checkCookie(req, res)
-  const file = req?.files?.configFile
-  if (!file) {
-    return res.json({ success: false, msg: "File was not found" });
+  let configurationFile
+  try {
+    configurationFile = yaml.dump(req?.body?.configFile)
+  } catch (err) {
+    console.error(err)
   }
-  
-  saveFile(CONFIGURATION_FILE_LOCATION, CONFIGURATION_FILE_NAME, file?.data)
+  if (!configurationFile) {
+    return res.json({ success: false, msg: "File was not found/Incorrect file" });
+  }
+
+  try {
+    if (req?.body?.configurationsToSave && req?.body?.configurationsToSave?.length > 0) {
+      req?.body?.configurationsToSave.forEach((configurationToSaveFileName) => {
+        try {
+          fs.renameSync(`${LOCATION_CONFIGURATION_FILES_LOCATION}/${configurationToSaveFileName}`, `${CONFIGURATION_FILE_LOCATION}/${configurationToSaveFileName}`)
+        } catch (err) {
+          console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file `)
+        }
+      })
+    }
+  } catch (err) {
+    console.error('Moving location config files failed')
+  }
+
+  saveFile(CONFIGURATION_FILE_LOCATION, CONFIGURATION_FILE_NAME, configurationFile)
   return res.json({ success: true, msg: "File saved successfully" });
 });
 
 app.post('/upload-location-configuration-file', (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
+
   if (!file) {
     return res.json({ success: true, msg: "File was not found" });
   }

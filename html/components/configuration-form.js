@@ -22,7 +22,7 @@ const defaultLocationConfig = {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null, newLocationId: false };
+    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [] };
   }
 
   componentDidMount() {
@@ -44,9 +44,27 @@ class ConfigurationForm extends React.Component {
         return
       }
 
-      const configurationFile = jsyaml.dump(this?.state?.configFile)
-      uploadFile(configurationFile, UPLOAD_CONFIGURATION_ENDPOINT)
-      this.setState({ newLocationId: false })
+      fetch(UPLOAD_CONFIGURATION_ENDPOINT, {
+        body: JSON.stringify({
+          configurationsToSave: this?.state?.configurationsToSave,
+          configFile: this?.state?.configFile
+        }),
+        method: "post",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            window.alert(data.error)
+            return
+          }
+          if (data.msg) {
+            window.alert(data.msg)
+          }
+          this.setState({ currentlyEdited: null, newLocationId: null, configurationsToSave: [] })
+        });
     });
   }
 
@@ -167,7 +185,7 @@ class ConfigurationForm extends React.Component {
                   this.setState(prevState => {
                     let newConfigFile = Object.assign({}, prevState.configFile);
                     newConfigFile.locations[key][keyLocation] = file?.name
-                    return { config: newConfigFile };
+                    return { config: newConfigFile, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
                   })
                 }
               }
