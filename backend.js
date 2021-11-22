@@ -6,7 +6,6 @@
  */
 
 const express = require('express');
-const path = require('path');
 const fileupload = require("express-fileupload");
 const cookieParser = require("cookie-parser");
 const yaml = require('js-yaml');
@@ -38,14 +37,27 @@ function checkCookie(req, res) {
   }
 }
 
+function saveFile(basePath, fileName, file) {
+  if (fs.existsSync(`${basePath}/${fileName}`)) {
+    // file exists, create backup first, then save
+    const timestamp = Date.now()
+    fs.renameSync(`${basePath}/${fileName}`, `${basePath}/${fileName}.${timestamp}`)
+    // save file
+    fs.writeFileSync(`${basePath}/${fileName}`, file);
+  } else {
+    // file dosent exists, save file without backup
+    fs.writeFileSync(`${basePath}/${fileName}`, file);
+  }
+}
+
 app.post('/upload-configuration-file', (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
   if (!file) {
     return res.json({ success: false, msg: "File was not found" });
   }
-
-  fs.writeFileSync(`${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, file?.data);
+  
+  saveFile(CONFIGURATION_FILE_LOCATION, CONFIGURATION_FILE_NAME, file?.data)
   return res.json({ success: true, msg: "File saved successfully" });
 });
 
@@ -55,7 +67,8 @@ app.post('/upload-location-configuration-file', (req, res) => {
   if (!file) {
     return res.json({ success: true, msg: "File was not found" });
   }
-  fs.writeFileSync(`${LOCATION_CONFIGURATION_FILES_LOCATION}/${file.name}`, file?.data);
+
+  saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data)
   return res.json({ success: true, msg: "Location configuration file saved successfully" });
 });
 
