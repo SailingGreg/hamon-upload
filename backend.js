@@ -42,8 +42,7 @@ app.post('/upload-configuration-file', (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
   if (!file) {
-    res.json({ success: false, msg: "File was not found" });
-    return;
+    return res.json({ success: false, msg: "File was not found" });
   }
 
   fs.writeFileSync(`${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, file?.data);
@@ -54,8 +53,7 @@ app.post('/upload-location-configuration-file', (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
   if (!file) {
-    res.json({ success: true, msg: "File was not found" });
-    return;
+    return res.json({ success: true, msg: "File was not found" });
   }
   fs.writeFileSync(`${LOCATION_CONFIGURATION_FILES_LOCATION}/${file.name}`, file?.data);
   return res.json({ success: true, msg: "Location configuration file saved successfully" });
