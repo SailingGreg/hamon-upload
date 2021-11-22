@@ -101,7 +101,7 @@ class ConfigurationForm extends React.Component {
               this.setState({ configFile: newConfigFile })
             }
           }, isLocationEnabled ? 'Disable' : 'Enable'),
-          e("button", { className: 'configuration-location-action-button', type: 'submit' }, 'Update'),
+          e("button", { className: 'configuration-location-action-button' }, 'Update'),
           // allow removal of last location, but only if it was created recently
           removableConfigs.includes(key) && removableConfigs[removableConfigs.length - 1] === key && e("button", {
             type: "button",
