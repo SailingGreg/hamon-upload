@@ -1,4 +1,4 @@
-export default function uploadFile(file, endpoint) {
+export default function uploadFile(file, endpoint, silent = false) {
   if (!file || !endpoint) {
     window.alert('File upload failed')
     return
@@ -17,7 +17,7 @@ export default function uploadFile(file, endpoint) {
         window.alert(data.error)
         return
       }
-      if (data.msg) {
+      if (data.msg && !silent) {
         window.alert(data.msg)
       }
     });

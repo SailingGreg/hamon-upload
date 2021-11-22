@@ -157,7 +157,7 @@ class ConfigurationForm extends React.Component {
               onChange: (e) => {
                 const file = e?.target?.files[0]
                 if (file) {
-                  uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT)
+                  uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
                   this.setState(prevState => {
                     let newConfigFile = Object.assign({}, prevState.configFile);
                     newConfigFile.locations[key][keyLocation] = file?.name
