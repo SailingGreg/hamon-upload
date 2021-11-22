@@ -112,7 +112,12 @@ class ConfigurationForm extends React.Component {
                 this.setState({ configFile: newConfigFile })
               }
             }, isLocationEnabled ? 'Disable' : 'Enable'),
-            e("button", { type: "button", className: 'configuration-location-action-button' }, 'Update')
+            e("button", {
+              type: "button", className: 'configuration-location-action-button',
+              onClick: () => {
+                this.setState({ currentlyEdited: null, newLocationId: null })
+              }
+            }, 'Update')
           ),
         ))
         table.push(e('td', { colspan: 5 }, editableContent))
