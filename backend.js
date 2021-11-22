@@ -96,7 +96,12 @@ app.post('/upload-location-configuration-file', (req, res) => {
 
 app.get('/load-configuration-file', (req, res) => {
   checkCookie(req, res)
-  const configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
+  let configFile
+  try {
+    configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
+  } catch (err) {
+    return res.json({ error: 'Configuration file not found' })
+  }
   return res.json(configFile)
 });
 
