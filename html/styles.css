@@ -1,10 +1,13 @@
+body {
+  overflow-y: scroll; /* Show vertical scrollbar */
+}
+
 .dot {
     height: 12px;
     width: 12px;
     background-color: lightgray;
     border-radius: 50%;
     display: inline-block;
-    margin-right: 8px;
   }
 
 .bg-green {
@@ -25,7 +28,9 @@
 }
 
 .configuration-header-wrapper {
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .configuration-header-title {
