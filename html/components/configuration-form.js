@@ -88,7 +88,7 @@ class ConfigurationForm extends React.Component {
         const editableContent = []
         table.push(e("tr", { className: 'configuration-location-wrapper' },
           e("th", { style: { width: 25 } }, e("span", { className: `dot ${isLocationEnabled ? 'bg-green' : ''}` })),
-          e("th", null, e("h4", { className: 'configuration-location-title', key: `${key}-header` }, value['name'])),
+          e("th", { style: { textAlign: 'left' } }, e("h4", { className: 'configuration-location-title', key: `${key}-header` }, value['name'])),
           e("th", null,
             e("button", {
               type: "button",
