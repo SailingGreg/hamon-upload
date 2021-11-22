@@ -1,7 +1,6 @@
 'use strict';
 import uploadFile from '../utils/upload-file.js';
 import fieldsDefinition from '../utils/fields-definition.js';
-import removeItemFromArray from '../utils/remove-item-from-array.js';
 
 const e = React.createElement;
 
@@ -23,7 +22,7 @@ const defaultLocationConfig = {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null, removableConfigs: [] };
+    this.state = { configFile: null, currentlyEdited: null, newLocationId: false };
   }
 
   componentDidMount() {
@@ -47,7 +46,7 @@ class ConfigurationForm extends React.Component {
 
       const configurationFile = jsyaml.dump(this?.state?.configFile)
       uploadFile(configurationFile, UPLOAD_CONFIGURATION_ENDPOINT)
-      this.setState({ removableConfigs: [] })
+      this.setState({ newLocationId: false })
     });
   }
 
@@ -58,20 +57,21 @@ class ConfigurationForm extends React.Component {
   render() {
     const content = []
     const configFile = this?.state?.configFile
+    const newLocationId = this?.state?.newLocationId
     if (configFile) {
       content.push(e("div", { className: 'configuration-header-wrapper' },
         e("h3", { className: 'configuration-header-title' }, 'Locations:'),
         e("button", {
           type: "button",
+          disabled: newLocationId,
           className: 'configuration-header-action-button',
           onClick: () => {
             const newLocationConfig = defaultLocationConfig
             const locationsLength = Object.keys(this?.state?.configFile?.locations)?.length
             let newConfigFile = Object.assign({}, this?.state?.configFile);
             const newLocationConfigKey = `Location-${locationsLength + 1}`
-            const newRemovableConfigs = [...this?.state?.removableConfigs, newLocationConfigKey]
             newConfigFile.locations[newLocationConfigKey] = Object.assign({}, newLocationConfig);
-            this.setState({ configFile: newConfigFile, currentlyEdited: newLocationConfigKey, removableConfigs: newRemovableConfigs })
+            this.setState({ configFile: newConfigFile, currentlyEdited: newLocationConfigKey, newLocationId: newLocationConfigKey })
           }
         }, 'Add Location'),
         e("button", { className: 'configuration-header-action-button', type: 'submit' }, 'Save Configuration')
@@ -81,17 +81,23 @@ class ConfigurationForm extends React.Component {
       for (const [key, value] of Object.entries(configFile?.locations)) {
         const currentLocation = this?.state?.configFile.locations[key]
         const isLocationEnabled = currentLocation['enabled']
-        const removableConfigs = this.state.removableConfigs
         const isCurrentlyEdited = this.state?.currentlyEdited === key
-
+        const isNewLocation = newLocationId === key
         content.push(e("div", { className: 'configuration-location-wrapper' },
           e("span", { className: `dot ${isLocationEnabled ? 'bg-green' : ''}` }),
           e("h4", { className: 'configuration-location-title', key: `${key}-header` }, value['name']),
           e("button", {
             type: "button",
             className: 'configuration-location-action-button',
-            onClick: () => this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
-          }, isCurrentlyEdited ? 'Cancel Edit' : 'Edit'),
+            onClick: () => {
+              this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
+              if (isNewLocation && isCurrentlyEdited) {
+                delete this?.state?.configFile.locations[key]
+                let newConfigFile = Object.assign({}, this?.state?.configFile);
+                this.setState({ configFile: newConfigFile, newLocationId: false })
+              }
+            }
+          }, isCurrentlyEdited ? 'Cancel' : 'Edit'),
           e("button", {
             type: "button",
             className: 'configuration-location-action-button',
@@ -102,18 +108,6 @@ class ConfigurationForm extends React.Component {
             }
           }, isLocationEnabled ? 'Disable' : 'Enable'),
           e("button", { type: "button", className: 'configuration-location-action-button' }, 'Update'),
-          // allow removal of last location, but only if it was created recently
-          removableConfigs.includes(key) && removableConfigs[removableConfigs.length - 1] === key && e("button", {
-            type: "button",
-            className: 'configuration-location-action-button',
-            style: { color: 'crimson' },
-            onClick: () => {
-              delete this?.state?.configFile.locations[key]
-              let newConfigFile = Object.assign({}, this?.state?.configFile);
-              const newRemovableConfigs = removeItemFromArray(this?.state?.removableConfigs, key)
-              this.setState({ configFile: newConfigFile, removableConfigs: [...newRemovableConfigs] })
-            }
-          }, 'Cancel'),
         ))
 
         for (const [keyLocation, valueLocation] of Object.entries(value)) {
