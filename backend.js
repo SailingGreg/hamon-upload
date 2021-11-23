@@ -39,8 +39,8 @@ function checkCookie(req, res) {
   }
 }
 
-function saveFile(basePath, fileName, file) {
-  if (fs.existsSync(`${basePath}/${fileName}`)) {
+function saveFile(basePath, fileName, file, disableBackup = false) {
+  if (fs.existsSync(`${basePath}/${fileName}`) && !disableBackup) {
     // file exists, create backup first, then save
     const timestamp = Date.now()
     fs.renameSync(`${basePath}/${fileName}`, `${basePath}/${fileName}.${timestamp}`)
@@ -49,6 +49,19 @@ function saveFile(basePath, fileName, file) {
   } else {
     // file dosent exists, save file without backup
     fs.writeFileSync(`${basePath}/${fileName}`, file);
+  }
+}
+
+function moveFile(originalPath, destinationPath, fileName) {
+  if (fs.existsSync(`${destinationPath}/${fileName}`)) {
+    // file exists, create backup first, then move
+    const timestamp = Date.now()
+    fs.renameSync(`${destinationPath}/${fileName}`, `${destinationPath}/${fileName}.${timestamp}`)
+    // move file
+    fs.renameSync(`${originalPath}/${fileName}`, `${destinationPath}/${fileName}`)
+  } else {
+    // file dosent exists, move file without backup
+    fs.renameSync(`${originalPath}/${fileName}`, `${destinationPath}/${fileName}`)
   }
 }
 
@@ -68,7 +81,7 @@ app.post('/upload-configuration-file', (req, res) => {
     if (req?.body?.configurationsToSave && req?.body?.configurationsToSave?.length > 0) {
       req?.body?.configurationsToSave.forEach((configurationToSaveFileName) => {
         try {
-          fs.renameSync(`${LOCATION_CONFIGURATION_FILES_LOCATION}/${configurationToSaveFileName}`, `${CONFIGURATION_FILE_LOCATION}/${configurationToSaveFileName}`)
+          moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION, configurationToSaveFileName)
         } catch (err) {
           console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file `)
         }
@@ -90,7 +103,7 @@ app.post('/upload-location-configuration-file', (req, res) => {
     return res.json({ success: true, msg: "File was not found" });
   }
 
-  saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data)
+  saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data, true)
   return res.json({ success: true, msg: "Location configuration file saved successfully" });
 });
 
