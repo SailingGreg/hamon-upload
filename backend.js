@@ -27,9 +27,9 @@ const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
 const SECURITY_COOKIE_NAME = 'grafana_session'
 //--- !!!! END OF CONFIGURATION !!!! ---//
 
-app.use(fileupload());
-app.use(cookieParser());
 app.use(express.static(__dirname + '/html'));
+app.use(cookieParser());
+app.use(fileupload());
 app.use(bodyParser.json());
 
 function checkCookie(req, res) {
