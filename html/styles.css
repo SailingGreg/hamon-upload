@@ -1,5 +1,7 @@
 body {
   overflow-y: scroll; /* Show vertical scrollbar */
+  background-color:#101010;
+  color:white;
 }
 
 .dot {
@@ -50,3 +52,8 @@ body {
   margin-right: 8px;
   margin-bottom: 8px;
 }
+
+tr:nth-child(even) {background: #181818 }
+tr:nth-child(odd) {background: 	#202020 }
+
+td{background:#282828; padding: 8px }

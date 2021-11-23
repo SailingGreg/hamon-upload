@@ -22,7 +22,7 @@ const defaultLocationConfig = {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [] };
+    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [], searchTerm: null };
   }
 
   componentDidMount() {
@@ -77,9 +77,14 @@ class ConfigurationForm extends React.Component {
     const table = []
     const configFile = this?.state?.configFile
     const newLocationId = this?.state?.newLocationId
+    const searchTerm = this?.state?.searchTerm
     if (configFile) {
       tableHeader.push(e("div", { className: 'configuration-header-wrapper' },
         e("h3", { className: 'configuration-header-title' }, 'Locations:'),
+        e("input", {
+          value: searchTerm, placeholder: 'Search..', className: 'configuration-header-title',
+          onChange: (e) => this.setState({ searchTerm: e?.target?.value })
+        }),
         e("span", { className: 'configuration-header-title' },
           e("button", {
             type: "button",
@@ -104,6 +109,11 @@ class ConfigurationForm extends React.Component {
         const isLocationEnabled = currentLocation['enabled']
         const isCurrentlyEdited = this.state?.currentlyEdited === key
         const editableContent = []
+        if (searchTerm && !((currentLocation?.name || '').includes(searchTerm))) {
+          // this record dosent meet requirements of search input, skip
+          continue
+        }
+
         table.push(e("tr", { className: 'configuration-location-wrapper' },
           e("th", { style: { width: 25 } }, e("span", { className: `dot ${isLocationEnabled ? 'bg-green' : ''}` })),
           e("th", { style: { textAlign: 'left' } }, e("h4", { className: 'configuration-location-title', key: `${key}-header` }, value['name'])),
@@ -138,8 +148,6 @@ class ConfigurationForm extends React.Component {
             }, 'Update')
           ),
         ))
-        table.push(e('td', { colspan: 5 }, editableContent))
-
         for (const [keyLocation, valueLocation] of Object.entries(value)) {
           if (this?.state?.currentlyEdited !== key) {
             // THIS LOCATION IS NOT CURRENTLY EDITED, DONT SHOW FIELDS
@@ -192,10 +200,14 @@ class ConfigurationForm extends React.Component {
             }),
           ))
         }
+
+        if (editableContent.length > 0) {
+          table.push(e('td', { colspan: 5 }, editableContent))
+        }
       }
     }
 
-    return e('div', { style: { maxWidth: 512 } }, [e('div', null, tableHeader), e('table', { style: { width: '100%' } }, table)])
+    return e('div', { style: { maxWidth: 620 } }, [e('div', null, tableHeader), e('table', { style: { width: '100%' } }, table)])
   }
 }
 
