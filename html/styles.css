@@ -51,6 +51,8 @@ body {
 .configuration-location-content-label {
   margin-right: 8px;
   margin-bottom: 8px;
+  display: inline-block;
+  min-width: 80px;
 }
 
 tr:nth-child(even) {background: #181818 }
