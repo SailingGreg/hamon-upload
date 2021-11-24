@@ -12,7 +12,7 @@ const defaultLocationConfig = {
   'desc': '',
   'enabled': true,
   'dns': '',
-  'port': '3671',
+  'port': 3671,
   'device': 'generic',
   'phyAddr': '15.15.15',
   'logging': 'info',
