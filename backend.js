@@ -6,6 +6,8 @@
  */
 
 const express = require('express');
+const http = require('http'); // added for ssl support
+const https = require('https');
 const fileupload = require("express-fileupload");
 const cookieParser = require("cookie-parser");
 const bodyParser = require('body-parser');
@@ -13,6 +15,14 @@ const yaml = require('js-yaml');
 const app = express();
 const port = process.env.PORT || 8080;
 const fs = require('fs');
+
+// for production
+const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
+const cert_key = "/etc/letsencrypt/live/home.monitor-software.com/cert.pem"
+const ca_file = "/etc/letsencrypt/live/home.monitor-software.com/chain.pem"
+
+const dev_cert = __dirname + "/../certs/selfsigned.crt"
+const dev_key =  __dirname + "/../certs/selfsigned.key"
 
 //--- !!!! CONFIGURATION !!!! ---//
 // Note this is where the configuration and location files reside
@@ -31,6 +41,20 @@ app.use(express.static(__dirname + '/html'));
 app.use(cookieParser());
 app.use(fileupload());
 app.use(bodyParser.json());
+
+// check files and load cert and key
+if (fs.existsSync(key_file)) { // production
+    var key = fs.readFileSync(key_file);
+    var cert = fs.readFileSync(cert_key);
+} else {
+    var key = fs.readFileSync(dev_key);
+    var cert = fs.readFileSync(dev_cert);
+}
+
+var options = {
+  key: key,
+  cert: cert
+};
 
 function checkCookie(req, res) {
   if (!req.cookies[SECURITY_COOKIE_NAME]) {
@@ -119,6 +143,12 @@ app.get('/load-configuration-file', (req, res) => {
 });
 
 app.use('/scripts', express.static(__dirname + '/node_modules/js-yaml/dist'));
-app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+var server = https.createServer(options, app);
+
+server.listen(port, () => {
+  console.log(`server starting on port : ${port} ...`)
+});
+//app.listen(port, () => console.log(`Listening on port ${port}...`));
 
 // end of file
