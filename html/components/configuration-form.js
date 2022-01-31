@@ -186,15 +186,19 @@ class ConfigurationForm extends React.Component {
               id: `${key}-${keyLocation}-file-upload`,
               key: `${key}-${keyLocation}-file-upload`,
               type: 'file',
+              accept: '.xml',
               onChange: (e) => {
                 const file = e?.target?.files[0]
-                if (file) {
+                if (file && file?.type === 'text/xml' && !/\s/g.test(file?.name)) {
                   uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
                   this.setState(prevState => {
                     let newConfigFile = Object.assign({}, prevState.configFile);
                     newConfigFile.locations[key][keyLocation] = file?.name
                     return { config: newConfigFile, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
                   })
+                } else {
+                  alert('Incorrect file, config file must be an xml file and have no spaces in filename')
+                  e.target.value = null
                 }
               }
             }),
