@@ -15,6 +15,7 @@ const yaml = require('js-yaml');
 const app = express();
 const port = process.env.PORT || 8080;
 const fs = require('fs');
+const path = require('path')
 
 // for production
 const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
@@ -122,9 +123,15 @@ app.post('/upload-configuration-file', (req, res) => {
 app.post('/upload-location-configuration-file', (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
+  const configFilePassword = req.body.configFilePassword
 
   if (!file) {
     return res.json({ success: true, msg: "File was not found" });
+  }
+
+  if(path.extname(file?.name) === '.knxproj') {
+    console.log('knx project file')
+    // TODO: add logic to parse knx project file
   }
 
   saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data, true)
