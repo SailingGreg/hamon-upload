@@ -186,18 +186,34 @@ class ConfigurationForm extends React.Component {
               id: `${key}-${keyLocation}-file-upload`,
               key: `${key}-${keyLocation}-file-upload`,
               type: 'file',
-              accept: '.xml',
-              onChange: (e) => {
+              accept: '.xml,.knxproj',
+              onChange: async (e) => {
                 const file = e?.target?.files[0]
-                if (file && file?.type === 'text/xml' && !/\s/g.test(file?.name)) {
-                  uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
-                  this.setState(prevState => {
-                    let newConfigFile = Object.assign({}, prevState.configFile);
-                    newConfigFile.locations[key][keyLocation] = file?.name
-                    return { config: newConfigFile, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
-                  })
+                const fileNameRegex = /\s|\(|\)/g
+                if (file && !fileNameRegex.test(file?.name)) {
+                  if (file?.type === 'text/xml') {
+                    // HANDLE XML CONFIG
+                    const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
+                    if (!uploadSuccess) {
+                      // upload failed, do not continue
+                      return
+                    }
+                    this.setState(prevState => {
+                      let newConfigFile = Object.assign({}, prevState.configFile);
+                      newConfigFile.locations[key][keyLocation] = file?.name
+                      return { config: newConfigFile, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
+                    })
+                  } else {
+                    // HANDLE KNXPROJECT CONFIG
+                    const configFilePassword = prompt("Enter config password (Leave empty is config is not secured)")
+                    const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true, configFilePassword)
+                    if (!uploadSuccess) {
+                      // upload failed, do not continue
+                      return
+                    }
+                  }
                 } else {
-                  alert('Incorrect file, config file must be an xml file and have no spaces in filename')
+                  alert('Incorrect file or file has incorrect name (No spaces or parentheses)')
                   e.target.value = null
                 }
               }

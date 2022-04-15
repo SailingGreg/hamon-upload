@@ -1,13 +1,14 @@
-export default function uploadFile(file, endpoint, silent = false) {
+export default function uploadFile(file, endpoint, silent = false, password = '') {
   if (!file || !endpoint) {
     window.alert('File upload failed')
-    return
+    return new Promise.resolve(false)
   }
   var blob = new Blob([file]);
   var formData = new FormData();
   formData.append('configFile', blob, file?.name);
+  formData.append('configFilePassword', password);
 
-  fetch(endpoint, {
+  return fetch(endpoint, {
     body: formData,
     method: "post",
   })
@@ -15,10 +16,12 @@ export default function uploadFile(file, endpoint, silent = false) {
     .then(data => {
       if (data.error) {
         window.alert(data.error)
-        return
+        return false
       }
       if (data.msg && !silent) {
         window.alert(data.msg)
+        return false
       }
+      return true
     });
 }
