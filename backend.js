@@ -15,7 +15,8 @@ const yaml = require('js-yaml');
 const app = express();
 const port = process.env.PORT || 8080;
 const fs = require('fs');
-const path = require('path')
+const path = require('path');
+const { etsProjectParser } = require('./utils/etsProjectParser');
 
 // for production
 const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
@@ -23,7 +24,7 @@ const cert_key = "/etc/letsencrypt/live/home.monitor-software.com/cert.pem"
 const ca_file = "/etc/letsencrypt/live/home.monitor-software.com/chain.pem"
 
 const dev_cert = __dirname + "/../certs/selfsigned.crt"
-const dev_key =  __dirname + "/../certs/selfsigned.key"
+const dev_key = __dirname + "/../certs/selfsigned.key"
 
 //--- !!!! CONFIGURATION !!!! ---//
 // Note this is where the configuration and location files reside
@@ -120,7 +121,7 @@ app.post('/upload-configuration-file', (req, res) => {
   return res.json({ success: true, msg: "File saved successfully" });
 });
 
-app.post('/upload-location-configuration-file', (req, res) => {
+app.post('/upload-location-configuration-file', async (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
   const configFilePassword = req.body.configFilePassword
@@ -129,9 +130,50 @@ app.post('/upload-location-configuration-file', (req, res) => {
     return res.json({ success: true, msg: "File was not found" });
   }
 
-  if(path.extname(file?.name) === '.knxproj') {
-    console.log('knx project file')
+  saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data, true)
+
+  if (path.extname(file?.name) === '.knxproj') {
+    // console.log('knx project file', LOCATION_CONFIGURATION_FILES_LOCATION)
     // TODO: add logic to parse knx project file
+
+    await etsProjectParser(`${LOCATION_CONFIGURATION_FILES_LOCATION}/${file.name}`, configFilePassword)
+      .then((project) => {
+        addr = 0;
+        dpts = 0;
+        ga = 0;
+        const groupAddresses = project.groupAddresses
+        for (let key in groupAddresses) {
+          addr++;
+          if (groupAddresses.hasOwnProperty(key)) {
+            //if (groupAddresses[key].dpt != undefined)
+            if (groupAddresses[key].datapointType != undefined)
+              dpts++;
+            // console.log(key, groupAddresses[key].dpt,
+            //     groupAddresses[key].name);
+            ga++;
+          }
+        }
+        const outputFilePath = LOCATION_CONFIGURATION_FILES_LOCATION + '/' + file.name
+        outputFile = outputFilePath.substring(0, outputFilePath.lastIndexOf('.')) + ".json";
+        fs.writeFile(outputFile, JSON.stringify(groupAddresses), err => {
+          if (err) {
+            return res.json({ success: false, msg: "Error while trying to save config file" });
+          }
+          console.log('Address data is saved to ' + outputFile + ' file');
+        });
+        console.log("%s has %d entries, %d with values and %d DPTs", outputFilePath, addr, ga, dpts);
+        return res.json({ success: true, msg: "Location configuration file saved successfully" });
+      }).catch(err => {
+        if (err.message == 'BAD_PASSWORD') {
+          return res.json({ success: false, msg: "Passed password is incorrect" });
+        } else if (err.message == 'MISSING_PASSWORD') {
+          return res.json({ success: false, msg: "This is secured knxproject file, password is required" });
+        } else {
+          return res.json({ success: false, msg: "Unknown error while parsing knx project file" });
+        }
+      })
+  } else {
+    return res.json({ success: true, msg: "Location configuration file saved successfully" });
   }
 
   saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data, true)

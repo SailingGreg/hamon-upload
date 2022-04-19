@@ -22,7 +22,7 @@ const defaultLocationConfig = {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [], searchTerm: null };
+    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [], searchTerm: null, configFileUpload: false };
   }
 
   componentDidMount() {
@@ -187,31 +187,36 @@ class ConfigurationForm extends React.Component {
               key: `${key}-${keyLocation}-file-upload`,
               type: 'file',
               accept: '.xml,.knxproj',
+              disabled: this.state.configFileUpload,
               onChange: async (e) => {
                 const file = e?.target?.files[0]
                 const fileNameRegex = /\s|\(|\)/g
                 if (file && !fileNameRegex.test(file?.name)) {
                   if (file?.type === 'text/xml') {
                     // HANDLE XML CONFIG
+                    this.setState({ configFileUpload: true })
                     const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
                     if (!uploadSuccess) {
                       // upload failed, do not continue
+                      this.setState({ configFileUpload: false })
                       return
                     }
-                    this.setState(prevState => {
-                      let newConfigFile = Object.assign({}, prevState.configFile);
-                      newConfigFile.locations[key][keyLocation] = file?.name
-                      return { config: newConfigFile, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
-                    })
                   } else {
                     // HANDLE KNXPROJECT CONFIG
                     const configFilePassword = prompt("Enter config password (Leave empty is config is not secured)")
+                    this.setState({ configFileUpload: true })
                     const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true, configFilePassword)
                     if (!uploadSuccess) {
                       // upload failed, do not continue
+                      this.setState({ configFileUpload: false })
                       return
                     }
                   }
+                  this.setState(prevState => {
+                    let newConfigFile = Object.assign({}, prevState.configFile);
+                    newConfigFile.locations[key][keyLocation] = file?.name
+                    return { config: newConfigFile, configFileUpload: false, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
+                  })
                 } else {
                   alert('Incorrect file or file has incorrect name (No spaces or parentheses)')
                   e.target.value = null

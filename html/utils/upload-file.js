@@ -14,13 +14,12 @@ export default function uploadFile(file, endpoint, silent = false, password = ''
   })
     .then(response => response.json())
     .then(data => {
-      if (data.error) {
-        window.alert(data.error)
+      if (!data.success) {
+        window.alert(data.msg)
         return false
       }
       if (data.msg && !silent) {
         window.alert(data.msg)
-        return false
       }
       return true
     });
