@@ -16,9 +16,5 @@
     "js-yaml": "^4.1.0",
     "sax": "^1.2.4",
     "unzipper": "^0.10.11"
-  },
-  "devDependencies": {
-    "node": "^17.1.0",
-    "nodemon": "^2.0.15"
   }
 }
