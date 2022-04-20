@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "yarn run nodemon backend.js",
-    "start": "yarn run node backend.js"
+    "start": "node backend.js"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
@@ -16,5 +16,8 @@
     "js-yaml": "^4.1.0",
     "sax": "^1.2.4",
     "unzipper": "^0.10.11"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
   }
 }
