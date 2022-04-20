@@ -79,6 +79,11 @@ function saveFile(basePath, fileName, file, disableBackup = false) {
 }
 
 function moveFile(originalPath, destinationPath, fileName) {
+  console.log(`Moving file: "${fileName}" to "${destinationPath}" from "${originalPath}"`)
+  if (!fs.existsSync(destinationPath)) {
+    // Check if destination folder exits, if not create it
+    fs.mkdirSync(destinationPath);
+  }
   if (fs.existsSync(`${destinationPath}/${fileName}`)) {
     // file exists, create backup first, then move
     const timestamp = Date.now()
@@ -107,9 +112,9 @@ app.post('/upload-configuration-file', (req, res) => {
     if (req?.body?.configurationsToSave && req?.body?.configurationsToSave?.length > 0) {
       req?.body?.configurationsToSave.forEach((configurationToSaveFileName) => {
         try {
-          moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION, configurationToSaveFileName)
+          moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION + LOCATION_CONFIGURATION_FILES_DESTINATION, configurationToSaveFileName)
         } catch (err) {
-          console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file `)
+          console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file`)
         }
       })
     }
