@@ -176,8 +176,6 @@ app.post('/upload-location-configuration-file', async (req, res) => {
     return res.json({ success: true, msg: "Location configuration file saved successfully" });
   }
 
-  saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data, true)
-  return res.json({ success: true, msg: "Location configuration file saved successfully" });
 });
 
 app.get('/load-configuration-file', (req, res) => {
