@@ -33,6 +33,7 @@ const CONFIGURATION_FILE_LOCATION = __dirname + '/../hamon'
 // const CONFIGURATION_FILE_LOCATION = __dirname + '/uploads'
 const CONFIGURATION_FILE_NAME = 'hamon.yml'
 const LOCATION_CONFIGURATION_FILES_LOCATION = __dirname + '/uploads/'
+const LOCATION_CONFIGURATION_FILES_DESTINATION = '/config/'
 // SETUP THIS ONLY IF WE ARE READING CONFIG FROM OTHER PLACE, FOR EXAMPLE WE WANT USER TO NOT OVERRIDE BASIC CONFIGURATION AND SAVE IT SOMEWHERE ELSE
 const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
 // const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
@@ -45,17 +46,17 @@ app.use(fileupload());
 app.use(bodyParser.json());
 
 // check files and load cert and key
-if (fs.existsSync(key_file)) { // production
-    var key = fs.readFileSync(key_file);
-    var cert = fs.readFileSync(cert_key);
-} else {
-    var key = fs.readFileSync(dev_key);
-    var cert = fs.readFileSync(dev_cert);
-}
+// if (fs.existsSync(key_file)) { // production
+//     var key = fs.readFileSync(key_file);
+//     var cert = fs.readFileSync(cert_key);
+// } else {
+//     var key = fs.readFileSync(dev_key);
+//     var cert = fs.readFileSync(dev_cert);
+// }
 
 var options = {
-  key: key,
-  cert: cert
+  // key: key,
+  // cert: cert
 };
 
 function checkCookie(req, res) {
@@ -158,7 +159,7 @@ app.post('/upload-location-configuration-file', async (req, res) => {
             ga++;
           }
         }
-        const outputFilePath = LOCATION_CONFIGURATION_FILES_LOCATION + '/' + file.name
+        const outputFilePath = LOCATION_CONFIGURATION_FILES_LOCATION + file.name
         outputFile = outputFilePath.substring(0, outputFilePath.lastIndexOf('.')) + ".json";
         fs.writeFile(outputFile, JSON.stringify(groupAddresses), err => {
           if (err) {
@@ -196,7 +197,7 @@ app.get('/load-configuration-file', (req, res) => {
 
 app.use('/scripts', express.static(__dirname + '/node_modules/js-yaml/dist'));
 
-var server = https.createServer(options, app);
+var server = http.createServer(options, app);
 
 server.listen(port, () => {
   console.log(`server starting on port : ${port} ...`)
