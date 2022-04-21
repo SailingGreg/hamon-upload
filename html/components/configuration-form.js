@@ -196,7 +196,6 @@ class ConfigurationForm extends React.Component {
                   if (file?.type === 'text/xml') {
                     // HANDLE XML CONFIG
                     this.setState({ configFileUpload: true })
-                    e.target.value = 'Uploading file..'
                     const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
                     if (!uploadSuccess) {
                       // upload failed, do not continue
@@ -210,8 +209,7 @@ class ConfigurationForm extends React.Component {
                       e.target.value = null
                       return false
                     }
-                    this.setState({ configFileUpload: true })
-                    e.target.value = 'Uploading file..'
+                    this.setState({ configFileUpload: true })                   
                     const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true, configFilePassword)
                     if (!uploadSuccess) {
                       // upload failed, do not continue
