@@ -33,6 +33,7 @@ const CONFIGURATION_FILE_LOCATION = __dirname + '/../hamon'
 // const CONFIGURATION_FILE_LOCATION = __dirname + '/uploads'
 const CONFIGURATION_FILE_NAME = 'hamon.yml'
 const LOCATION_CONFIGURATION_FILES_LOCATION = __dirname + '/uploads/'
+const LOCATION_CONFIGURATION_FILES_DESTINATION = '/config/'
 // SETUP THIS ONLY IF WE ARE READING CONFIG FROM OTHER PLACE, FOR EXAMPLE WE WANT USER TO NOT OVERRIDE BASIC CONFIGURATION AND SAVE IT SOMEWHERE ELSE
 const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
 // const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
@@ -158,7 +159,7 @@ app.post('/upload-location-configuration-file', async (req, res) => {
             ga++;
           }
         }
-        const outputFilePath = LOCATION_CONFIGURATION_FILES_LOCATION + '/' + file.name
+        const outputFilePath = LOCATION_CONFIGURATION_FILES_LOCATION + file.name
         outputFile = outputFilePath.substring(0, outputFilePath.lastIndexOf('.')) + ".json";
         fs.writeFile(outputFile, JSON.stringify(groupAddresses), err => {
           if (err) {
