@@ -1,6 +1,6 @@
 'use strict';
 import uploadFile from '../utils/upload-file.js';
-import fieldsDefinition from '../utils/fields-definition.js';
+import fieldsDefinition, { CONFIG_FILE_PASSWORD_KEY } from '../utils/fields-definition.js';
 
 const e = React.createElement;
 
@@ -193,6 +193,7 @@ class ConfigurationForm extends React.Component {
                 const file = e?.target?.files[0]
                 const fileNameRegex = /\s|\(|\)/g
                 if (file && !fileNameRegex.test(file?.name)) {
+                  let configFilePassword
                   if (file?.type === 'text/xml') {
                     // HANDLE XML CONFIG
                     this.setState({ configFileUpload: true })
@@ -204,12 +205,12 @@ class ConfigurationForm extends React.Component {
                     }
                   } else {
                     // HANDLE KNXPROJECT CONFIG
-                    const configFilePassword = prompt("Enter config password (Leave empty is config is not secured)")
-                    if(configFilePassword == null) {
+                    configFilePassword = prompt("Enter config password (Leave empty is config is not secured)")
+                    if (configFilePassword == null) {
                       e.target.value = null
                       return false
                     }
-                    this.setState({ configFileUpload: true })                   
+                    this.setState({ configFileUpload: true })
                     const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true, configFilePassword)
                     if (!uploadSuccess) {
                       // upload failed, do not continue
@@ -221,6 +222,9 @@ class ConfigurationForm extends React.Component {
                   this.setState(prevState => {
                     let newConfigFile = Object.assign({}, prevState.configFile);
                     newConfigFile.locations[key][keyLocation] = file?.name
+                    if (configFilePassword) {
+                      newConfigFile.locations[key][CONFIG_FILE_PASSWORD_KEY] = configFilePassword
+                    }
                     return { config: newConfigFile, configFileUpload: false, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
                   })
                 } else {
