@@ -196,6 +196,7 @@ class ConfigurationForm extends React.Component {
                   if (file?.type === 'text/xml') {
                     // HANDLE XML CONFIG
                     this.setState({ configFileUpload: true })
+                    e.target.value = 'Uploading file..'
                     const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
                     if (!uploadSuccess) {
                       // upload failed, do not continue
