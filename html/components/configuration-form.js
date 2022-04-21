@@ -205,12 +205,17 @@ class ConfigurationForm extends React.Component {
                   } else {
                     // HANDLE KNXPROJECT CONFIG
                     const configFilePassword = prompt("Enter config password (Leave empty is config is not secured)")
+                    if(configFilePassword == null) {
+                      e.target.value = null
+                      return false
+                    }
                     this.setState({ configFileUpload: true })
                     const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true, configFilePassword)
                     if (!uploadSuccess) {
                       // upload failed, do not continue
+                      e.target.value = null
                       this.setState({ configFileUpload: false })
-                      return
+                      return false
                     }
                   }
                   this.setState(prevState => {
