@@ -78,7 +78,6 @@ class ConfigurationForm extends React.Component {
     const configFile = this?.state?.configFile
     const newLocationId = this?.state?.newLocationId
     const searchTerm = this?.state?.searchTerm
-    const configFileUpload = this?.state?.configFileUpload
     if (configFile) {
       tableHeader.push(e("div", { className: 'configuration-header-wrapper' },
         e("h3", { className: 'configuration-header-title' }, 'Locations:'),
@@ -100,7 +99,7 @@ class ConfigurationForm extends React.Component {
               this.setState({ configFile: newConfigFile, currentlyEdited: newLocationConfigKey, newLocationId: newLocationConfigKey })
             }
           }, 'Add Location'),
-          e("button", { disabled: configFileUpload, className: 'configuration-header-action-button', type: 'submit' }, 'Save Configuration')
+          e("button", { className: 'configuration-header-action-button', type: 'submit' }, 'Save Configuration')
         )
       ))
 
