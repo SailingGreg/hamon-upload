@@ -15,6 +15,8 @@ const yaml = require('js-yaml');
 const app = express();
 const port = process.env.PORT || 8080;
 const fs = require('fs');
+const path = require('path');
+const { etsProjectParser } = require('./utils/etsProjectParser');
 
 // for production
 const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
@@ -22,7 +24,7 @@ const cert_key = "/etc/letsencrypt/live/home.monitor-software.com/cert.pem"
 const ca_file = "/etc/letsencrypt/live/home.monitor-software.com/chain.pem"
 
 const dev_cert = __dirname + "/../certs/selfsigned.crt"
-const dev_key =  __dirname + "/../certs/selfsigned.key"
+const dev_key = __dirname + "/../certs/selfsigned.key"
 
 //--- !!!! CONFIGURATION !!!! ---//
 // Note this is where the configuration and location files reside
@@ -31,6 +33,7 @@ const CONFIGURATION_FILE_LOCATION = __dirname + '/../hamon'
 // const CONFIGURATION_FILE_LOCATION = __dirname + '/uploads'
 const CONFIGURATION_FILE_NAME = 'hamon.yml'
 const LOCATION_CONFIGURATION_FILES_LOCATION = __dirname + '/uploads/'
+const LOCATION_CONFIGURATION_FILES_DESTINATION = '/config/'
 // SETUP THIS ONLY IF WE ARE READING CONFIG FROM OTHER PLACE, FOR EXAMPLE WE WANT USER TO NOT OVERRIDE BASIC CONFIGURATION AND SAVE IT SOMEWHERE ELSE
 const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
 // const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
@@ -77,6 +80,11 @@ function saveFile(basePath, fileName, file, disableBackup = false) {
 }
 
 function moveFile(originalPath, destinationPath, fileName) {
+  console.log(`Moving file: "${fileName}" from "${originalPath}" to "${destinationPath}" `)
+  if (!fs.existsSync(destinationPath)) {
+    // Check if destination folder exits, if not create it
+    fs.mkdirSync(destinationPath);
+  }
   if (fs.existsSync(`${destinationPath}/${fileName}`)) {
     // file exists, create backup first, then move
     const timestamp = Date.now()
@@ -105,9 +113,13 @@ app.post('/upload-configuration-file', (req, res) => {
     if (req?.body?.configurationsToSave && req?.body?.configurationsToSave?.length > 0) {
       req?.body?.configurationsToSave.forEach((configurationToSaveFileName) => {
         try {
-          moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION, configurationToSaveFileName)
+          moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION + LOCATION_CONFIGURATION_FILES_DESTINATION, configurationToSaveFileName) 
+          const knxprojectParsedJsonName = configurationToSaveFileName.substr(0, configurationToSaveFileName.lastIndexOf('.')) + '.json'
+          if (path.extname(configurationToSaveFileName) === '.knxproj' && fs.existsSync(LOCATION_CONFIGURATION_FILES_LOCATION + knxprojectParsedJsonName)) {
+            moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION + LOCATION_CONFIGURATION_FILES_DESTINATION, knxprojectParsedJsonName) 
+          }
         } catch (err) {
-          console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file `)
+          console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file`)
         }
       })
     }
@@ -119,16 +131,61 @@ app.post('/upload-configuration-file', (req, res) => {
   return res.json({ success: true, msg: "File saved successfully" });
 });
 
-app.post('/upload-location-configuration-file', (req, res) => {
+app.post('/upload-location-configuration-file', async (req, res) => {
   checkCookie(req, res)
   const file = req?.files?.configFile
+  const configFilePassword = req.body.configFilePassword
 
   if (!file) {
     return res.json({ success: true, msg: "File was not found" });
   }
 
   saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data, true)
-  return res.json({ success: true, msg: "Location configuration file saved successfully" });
+
+  if (path.extname(file?.name) === '.knxproj') {
+    // console.log('knx project file', LOCATION_CONFIGURATION_FILES_LOCATION)
+    // TODO: add logic to parse knx project file
+
+    await etsProjectParser(`${LOCATION_CONFIGURATION_FILES_LOCATION}/${file.name}`, configFilePassword)
+      .then((project) => {
+        addr = 0;
+        dpts = 0;
+        ga = 0;
+        const groupAddresses = project.groupAddresses
+        for (let key in groupAddresses) {
+          addr++;
+          if (groupAddresses.hasOwnProperty(key)) {
+            //if (groupAddresses[key].dpt != undefined)
+            if (groupAddresses[key].datapointType != undefined)
+              dpts++;
+            // console.log(key, groupAddresses[key].dpt,
+            //     groupAddresses[key].name);
+            ga++;
+          }
+        }
+        const outputFilePath = LOCATION_CONFIGURATION_FILES_LOCATION + file.name
+        outputFile = outputFilePath.substring(0, outputFilePath.lastIndexOf('.')) + ".json";
+        fs.writeFile(outputFile, JSON.stringify(groupAddresses), err => {
+          if (err) {
+            return res.json({ success: false, msg: "Error while trying to save config file" });
+          }
+          console.log('Address data is saved to ' + outputFile + ' file');
+        });
+        console.log("%s has %d entries, %d with values and %d DPTs", outputFilePath, addr, ga, dpts);
+        return res.json({ success: true, msg: "Location configuration file saved successfully" });
+      }).catch(err => {
+        if (err.message == 'BAD_PASSWORD') {
+          return res.json({ success: false, msg: "Passed password is incorrect" });
+        } else if (err.message == 'MISSING_PASSWORD') {
+          return res.json({ success: false, msg: "This is secured knxproject file, password is required" });
+        } else {
+          return res.json({ success: false, msg: "Unknown error while parsing knx project file" });
+        }
+      })
+  } else {
+    return res.json({ success: true, msg: "Location configuration file saved successfully" });
+  }
+
 });
 
 app.get('/load-configuration-file', (req, res) => {

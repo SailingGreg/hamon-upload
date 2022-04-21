@@ -1,6 +1,6 @@
 'use strict';
 import uploadFile from '../utils/upload-file.js';
-import fieldsDefinition from '../utils/fields-definition.js';
+import fieldsDefinition, { CONFIG_FILE_PASSWORD_KEY } from '../utils/fields-definition.js';
 
 const e = React.createElement;
 
@@ -22,7 +22,7 @@ const defaultLocationConfig = {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [], searchTerm: null };
+    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [], searchTerm: null, configFileUpload: false };
   }
 
   componentDidMount() {
@@ -78,6 +78,7 @@ class ConfigurationForm extends React.Component {
     const configFile = this?.state?.configFile
     const newLocationId = this?.state?.newLocationId
     const searchTerm = this?.state?.searchTerm
+    const configFileUpload = this?.state?.configFileUpload
     if (configFile) {
       tableHeader.push(e("div", { className: 'configuration-header-wrapper' },
         e("h3", { className: 'configuration-header-title' }, 'Locations:'),
@@ -99,7 +100,7 @@ class ConfigurationForm extends React.Component {
               this.setState({ configFile: newConfigFile, currentlyEdited: newLocationConfigKey, newLocationId: newLocationConfigKey })
             }
           }, 'Add Location'),
-          e("button", { className: 'configuration-header-action-button', type: 'submit' }, 'Save Configuration')
+          e("button", { disabled: configFileUpload, className: 'configuration-header-action-button', type: 'submit' }, 'Save Configuration')
         )
       ))
 
@@ -173,6 +174,7 @@ class ConfigurationForm extends React.Component {
               id: `${key}-${keyLocation}`,
               key: `${key}-${keyLocation}`,
               value: valueLocation,
+              type: fieldDefinition.type === 'password' ? 'password' : null,
               readOnly: fieldDefinition?.readOnly ? '' : null,
               onChange: (e) => {
                 this.setState(prevState => {
@@ -186,18 +188,48 @@ class ConfigurationForm extends React.Component {
               id: `${key}-${keyLocation}-file-upload`,
               key: `${key}-${keyLocation}-file-upload`,
               type: 'file',
-              accept: '.xml',
-              onChange: (e) => {
+              accept: '.xml,.knxproj',
+              disabled: this.state.configFileUpload,
+              onChange: async (e) => {
                 const file = e?.target?.files[0]
-                if (file && file?.type === 'text/xml' && !/\s/g.test(file?.name)) {
-                  uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
+                const fileNameRegex = /\s|\(|\)/g
+                if (file && !fileNameRegex.test(file?.name)) {
+                  let configFilePassword
+                  if (file?.type === 'text/xml') {
+                    // HANDLE XML CONFIG
+                    this.setState({ configFileUpload: true })
+                    const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true)
+                    if (!uploadSuccess) {
+                      // upload failed, do not continue
+                      this.setState({ configFileUpload: false })
+                      return
+                    }
+                  } else {
+                    // HANDLE KNXPROJECT CONFIG
+                    configFilePassword = prompt("Enter config password (Leave empty is config is not secured)")
+                    if (configFilePassword == null) {
+                      e.target.value = null
+                      return false
+                    }
+                    this.setState({ configFileUpload: true })
+                    const uploadSuccess = await uploadFile(file, UPLOAD_LOCATION_CONFIGURATION_ENDPOINT, true, configFilePassword)
+                    if (!uploadSuccess) {
+                      // upload failed, do not continue
+                      e.target.value = null
+                      this.setState({ configFileUpload: false })
+                      return false
+                    }
+                  }
                   this.setState(prevState => {
                     let newConfigFile = Object.assign({}, prevState.configFile);
                     newConfigFile.locations[key][keyLocation] = file?.name
-                    return { config: newConfigFile, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
+                    if (configFilePassword) {
+                      newConfigFile.locations[key][CONFIG_FILE_PASSWORD_KEY] = configFilePassword
+                    }
+                    return { config: newConfigFile, configFileUpload: false, configurationsToSave: [...prevState?.configurationsToSave, file?.name] };
                   })
                 } else {
-                  alert('Incorrect file, config file must be an xml file and have no spaces in filename')
+                  alert('Incorrect file or file has incorrect name (No spaces or parentheses)')
                   e.target.value = null
                 }
               }

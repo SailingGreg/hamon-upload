@@ -1,3 +1,5 @@
+export const CONFIG_FILE_PASSWORD_KEY = 'configPass'
+
 const fieldsDefinition = {
   'name': {
     type: 'text',
@@ -25,6 +27,9 @@ const fieldsDefinition = {
   },
   'config': {
     type: 'file',
+  },
+  [CONFIG_FILE_PASSWORD_KEY]: {
+    type: 'password',
   },
 }
 
