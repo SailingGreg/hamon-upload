@@ -29,7 +29,7 @@ const fieldsDefinition = {
     type: 'file',
   },
   [CONFIG_FILE_PASSWORD_KEY]: {
-    type: 'text',
+    type: 'password',
   },
 }
 

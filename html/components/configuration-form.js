@@ -174,6 +174,7 @@ class ConfigurationForm extends React.Component {
               id: `${key}-${keyLocation}`,
               key: `${key}-${keyLocation}`,
               value: valueLocation,
+              type: fieldDefinition.type === 'password' ? 'password' : null,
               readOnly: fieldDefinition?.readOnly ? '' : null,
               onChange: (e) => {
                 this.setState(prevState => {
