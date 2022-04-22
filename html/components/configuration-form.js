@@ -243,7 +243,13 @@ class ConfigurationForm extends React.Component {
       }
     }
 
-    return e('div', { style: { maxWidth: 620 } }, [e('div', null, tableHeader), e('table', { style: { width: '100%' } }, table)])
+    return e('div', { style: { maxWidth: 620 } }, [
+      !!configFileUpload && e('div', { style: { position: 'absolute', width: '100%', height: '100%', top: 0, left: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, .5)' } }, [
+        e('p', {}, 'Uploading config file..')
+      ]),
+      e('div', null, tableHeader),
+      e('table', { style: { width: '100%' } }, table)
+    ])
   }
 }
 
