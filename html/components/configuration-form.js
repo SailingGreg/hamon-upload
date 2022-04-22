@@ -22,7 +22,7 @@ const defaultLocationConfig = {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null, newLocationId: false, configurationsToSave: [], searchTerm: null, configFileUpload: false };
+    this.state = { configFile: null, currentlyEdited: null, currentlyEditedLocationBackup: null, newLocationId: false, configurationsToSave: [], searchTerm: null, configFileUpload: false };
   }
 
   componentDidMount() {
@@ -124,7 +124,16 @@ class ConfigurationForm extends React.Component {
               style: { minWidth: 75 },
               className: 'configuration-location-action-button',
               onClick: () => {
-                this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key }))
+                if (isCurrentlyEdited) {
+                  //PRESSED CANCEL, REVERTING CHANGES
+                  const configFile = this?.state?.configFile
+                  configFile.locations[key] = this?.state?.currentlyEditedLocationBackup
+                  let restoredConfigFile = Object.assign({}, configFile)
+                  this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key, configFile: restoredConfigFile, currentlyEditedLocationBackup: null }))
+                } else {
+                  const currentLocationData = Object.assign({}, this?.state?.configFile.locations[key])
+                  this.setState(prevState => ({ currentlyEdited: prevState?.currentlyEdited === key ? null : key, currentlyEditedLocationBackup: currentLocationData }))
+                }
                 if (newLocationId) {
                   delete this?.state?.configFile.locations[newLocationId]
                   let newConfigFile = Object.assign({}, this?.state?.configFile);
