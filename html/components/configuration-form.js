@@ -179,7 +179,7 @@ class ConfigurationForm extends React.Component {
               key: `${key}-${keyLocation}-label`,
               htmlFor: `${key}-${keyLocation}`
             }, keyLocation),
-            e("input", {
+            fieldDefinition.type === 'select' ? e("select", {
               id: `${key}-${keyLocation}`,
               key: `${key}-${keyLocation}`,
               value: valueLocation,
@@ -192,7 +192,26 @@ class ConfigurationForm extends React.Component {
                   return { config: newConfigFile };
                 })
               }
-            }),
+            }, [
+              fieldDefinition.values.map(value => (
+                e("option", { value }, value)
+              ))
+            ]) :
+              e("input", {
+                id: `${key}-${keyLocation}`,
+                key: `${key}-${keyLocation}`,
+                value: valueLocation,
+                type: fieldDefinition.type === 'password' ? 'password' : null,
+                readOnly: fieldDefinition?.readOnly ? '' : null,
+                onChange: (e) => {
+                  this.setState(prevState => {
+                    let newConfigFile = Object.assign({}, prevState.configFile);
+                    newConfigFile.locations[key][keyLocation] = e?.target?.value
+                    return { config: newConfigFile };
+                  })
+                }
+              })
+            ,
             fieldDefinition.type === 'file' && e("input", {
               id: `${key}-${keyLocation}-file-upload`,
               key: `${key}-${keyLocation}-file-upload`,

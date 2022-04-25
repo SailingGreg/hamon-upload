@@ -17,7 +17,8 @@ const fieldsDefinition = {
     type: 'text',
   },
   'device': {
-    type: 'text',
+    type: 'select',
+    values: ['generic', 'loxone', 'eibport']
   },
   'phyAddr': {
     type: 'text',
