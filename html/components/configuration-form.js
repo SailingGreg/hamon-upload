@@ -11,6 +11,7 @@ const defaultLocationConfig = {
   'name': 'new-location',
   'desc': '',
   'enabled': true,
+  'hapi': false,
   'dns': '',
   'port': 3671,
   'device': 'generic',
@@ -158,14 +159,10 @@ class ConfigurationForm extends React.Component {
             }, 'Update')
           ),
         ))
-        for (const [keyLocation, valueLocation] of Object.entries(value)) {
+        for (const [fieldDefinitionKey, fieldDefinition] of Object.entries(fieldsDefinition)) {
+          const fieldValue = value[fieldDefinitionKey]
           if (this?.state?.currentlyEdited !== key) {
             // THIS LOCATION IS NOT CURRENTLY EDITED, DONT SHOW FIELDS
-            continue
-          }
-          const fieldDefinition = fieldsDefinition[keyLocation]
-          if (!fieldDefinition) {
-            console.error('NO FIELD DEF')
             continue
           }
           if (fieldDefinition.hidden) {
@@ -176,19 +173,40 @@ class ConfigurationForm extends React.Component {
           editableContent.push(e('div', { className: 'configuration-location-content-wrapper' },
             e("label", {
               className: 'configuration-location-content-label',
-              key: `${key}-${keyLocation}-label`,
-              htmlFor: `${key}-${keyLocation}`
-            }, keyLocation),
-            fieldDefinition.type === 'select' ? e("select", {
-              id: `${key}-${keyLocation}`,
-              key: `${key}-${keyLocation}`,
-              value: valueLocation,
-              type: fieldDefinition.type === 'password' ? 'password' : null,
+              key: `${key}-${fieldDefinitionKey}-label`,
+              htmlFor: `${key}-${fieldDefinitionKey}`
+            }, fieldDefinition.label || fieldDefinitionKey),
+            fieldDefinition.type === 'boolean' ? e("select", {
+              id: `${key}-${fieldDefinitionKey}`,
+              key: `${key}-${fieldDefinitionKey}`,
+              value: typeof fieldValue == "boolean" ? fieldValue : fieldValue === "true",
               readOnly: fieldDefinition?.readOnly ? '' : null,
               onChange: (e) => {
                 this.setState(prevState => {
                   let newConfigFile = Object.assign({}, prevState.configFile);
-                  newConfigFile.locations[key][keyLocation] = e?.target?.value
+                  let value = e?.target?.value
+
+                  if(typeof value === "string") {
+                    value = value === "true"
+                  }
+
+                  newConfigFile.locations[key][fieldDefinitionKey] = value
+                  return { config: newConfigFile };
+                })
+              }
+            }, [
+                e("option", { value: true }, 'true'),
+                e("option", { value: false }, 'false'),
+            ]) :
+            fieldDefinition.type === 'select' ? e("select", {
+              id: `${key}-${fieldDefinitionKey}`,
+              key: `${key}-${fieldDefinitionKey}`,
+              value: fieldValue,
+              readOnly: fieldDefinition?.readOnly ? '' : null,
+              onChange: (e) => {
+                this.setState(prevState => {
+                  let newConfigFile = Object.assign({}, prevState.configFile);
+                  newConfigFile.locations[key][fieldDefinitionKey] = e?.target?.value
                   return { config: newConfigFile };
                 })
               }
@@ -198,23 +216,23 @@ class ConfigurationForm extends React.Component {
               ))
             ]) :
               e("input", {
-                id: `${key}-${keyLocation}`,
-                key: `${key}-${keyLocation}`,
-                value: valueLocation,
+                id: `${key}-${fieldDefinitionKey}`,
+                key: `${key}-${fieldDefinitionKey}`,
+                value: fieldValue,
                 type: fieldDefinition.type === 'password' ? 'password' : null,
                 readOnly: fieldDefinition?.readOnly ? '' : null,
                 onChange: (e) => {
                   this.setState(prevState => {
                     let newConfigFile = Object.assign({}, prevState.configFile);
-                    newConfigFile.locations[key][keyLocation] = e?.target?.value
+                    newConfigFile.locations[key][fieldDefinitionKey] = e?.target?.value
                     return { config: newConfigFile };
                   })
                 }
               })
             ,
             fieldDefinition.type === 'file' && e("input", {
-              id: `${key}-${keyLocation}-file-upload`,
-              key: `${key}-${keyLocation}-file-upload`,
+              id: `${key}-${fieldDefinitionKey}-file-upload`,
+              key: `${key}-${fieldDefinitionKey}-file-upload`,
               type: 'file',
               accept: '.xml,.knxproj',
               disabled: this.state.configFileUpload,
@@ -250,7 +268,7 @@ class ConfigurationForm extends React.Component {
                   }
                   this.setState(prevState => {
                     let newConfigFile = Object.assign({}, prevState.configFile);
-                    newConfigFile.locations[key][keyLocation] = file?.name
+                    newConfigFile.locations[key][fieldDefinitionKey] = file?.name
                     if (configFilePassword) {
                       newConfigFile.locations[key][CONFIG_FILE_PASSWORD_KEY] = configFilePassword
                     }

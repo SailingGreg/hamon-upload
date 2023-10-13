@@ -8,7 +8,11 @@ const fieldsDefinition = {
     type: 'text',
   },
   'enabled': {
-    type: 'text',
+    type: 'boolean',
+  },
+  'hapi': {
+    label: 'HAPi (VPN)',
+    type: 'boolean',
   },
   'dns': {
     type: 'text',
