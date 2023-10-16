@@ -23,7 +23,7 @@ const defaultLocationConfig = {
 class ConfigurationForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { configFile: null, currentlyEdited: null, currentlyEditedLocationBackup: null, newLocationId: false, configurationsToSave: [], searchTerm: null, configFileUpload: false };
+    this.state = { configFile: null, currentlyEdited: null, currentlyEditedLocationBackup: null, newLocationId: false, configurationsToSave: [], searchTerm: null, configFileUpload: false, sortStatusDir: null, sortNameDir: null  };
   }
 
   componentDidMount() {
@@ -80,6 +80,8 @@ class ConfigurationForm extends React.Component {
     const newLocationId = this?.state?.newLocationId
     const searchTerm = this?.state?.searchTerm
     const configFileUpload = this?.state?.configFileUpload
+    const sortStatusDir = this?.state?.sortStatusDir
+    const sortNameDir = this?.state?.sortNameDir
     if (configFile) {
       tableHeader.push(e("div", { className: 'configuration-header-wrapper' },
         e("h3", { className: 'configuration-header-title' }, 'Locations:'),
@@ -105,8 +107,66 @@ class ConfigurationForm extends React.Component {
         )
       ))
 
-      // display the locations?
-      for (const [key, value] of Object.entries(configFile?.locations)) {
+      const statusColumnTitle = 'status' + (sortStatusDir === 'ASC' ? '↓': sortStatusDir === 'DESC' ? '↑': ' ')
+      const nameColumnTitle = 'name' + (sortNameDir === 'ASC' ? '↓': sortNameDir === 'DESC' ? '↑': ' ')
+      table.push(e("tr", { className: 'configuration-location-wrapper' },
+        e("th", { style: { textAlign: 'center', padding: '0.5rem' }, onClick: () => {
+          this.setState((prevState) => { 
+            let newSortStatusDir = null
+            if(prevState.sortStatusDir === null) {
+              newSortStatusDir = 'ASC'
+            } else if(prevState.sortStatusDir === 'ASC') {
+              newSortStatusDir = 'DESC'
+            }
+            
+            return ({
+              sortStatusDir: newSortStatusDir
+            })
+          })
+        }}, e("span", { className: '' }, statusColumnTitle)),
+        e("th", { style: { textAlign: 'center', padding: '0.5rem' }, onClick: () => {
+            this.setState((prevState) => { 
+              let newSortNameDir = null
+              if(prevState.sortNameDir === null) {
+                newSortNameDir = 'ASC'
+              } else if(prevState.sortNameDir === 'ASC') {
+                newSortNameDir = 'DESC'
+              }
+              
+              return ({
+                sortNameDir: newSortNameDir
+              })
+            })
+        } }, e("span", { className: '' }, nameColumnTitle)),
+        e("th", { style: { textAlign: 'center', padding: '0.5rem' } }, e("span", { className: '' }, 'actions')),
+      ))
+
+      const locations = Object.entries(configFile?.locations)
+      let sortedLocations = [...locations].sort((a, b) => {
+        if(!sortStatusDir) {
+          return 0;
+        } 
+
+        if(!a[1].enabled && b[1].enabled) {
+          return sortStatusDir === 'ASC'? 1: -1;
+        } else if(a[1].enabled && !b[1].enabled) {
+          return sortStatusDir === 'ASC'? -1: 1;
+        } else {
+          return 0
+        }
+      })
+
+      sortedLocations = [...sortedLocations].sort((a, b) => {
+        if(!sortNameDir) {
+          return 0;
+        } 
+
+        const result = a[1].name.localeCompare(b[1].name, 'en', { numeric: true })
+        return sortNameDir === 'ASC' ? result: - result;
+      })
+
+      // display the locations
+      for (const [key, value] of sortedLocations) {
         const currentLocation = this?.state?.configFile.locations[key]
         const isLocationEnabled = currentLocation['enabled']
         const isCurrentlyEdited = this.state?.currentlyEdited === key
