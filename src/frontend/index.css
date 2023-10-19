@@ -1,0 +1,15 @@
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+body {
+  overflow-y: scroll; /* Show vertical scrollbar */
+  background-color:#101010;
+  color:white;
+}
+
+tr:nth-child(even) {background: #181818 }
+tr:nth-child(odd) {background: 	#202020 }
+
+td{background:#282828; padding: 8px }

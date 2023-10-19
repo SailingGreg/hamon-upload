@@ -16,7 +16,7 @@ const app = express();
 const port = process.env.PORT || 8080;
 const fs = require('fs');
 const path = require('path');
-const { etsProjectParser } = require('./utils/etsProjectParser');
+const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
 
 // for production
 const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
@@ -40,7 +40,8 @@ const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
 const SECURITY_COOKIE_NAME = 'grafana_session'
 //--- !!!! END OF CONFIGURATION !!!! ---//
 
-app.use(express.static(__dirname + '/html'));
+app.use(express.static(__dirname + '/dist'));
+app.use('/static', express.static(__dirname + '/dist/static'));
 app.use(cookieParser());
 app.use(fileupload());
 app.use(bodyParser.json());
@@ -50,13 +51,13 @@ if (fs.existsSync(key_file)) { // production
     var key = fs.readFileSync(key_file);
     var cert = fs.readFileSync(cert_key);
 } else {
-    var key = fs.readFileSync(dev_key);
-    var cert = fs.readFileSync(dev_cert);
+    // var key = fs.readFileSync(dev_key);
+    // var cert = fs.readFileSync(dev_cert);
 }
 
 var options = {
-  key: key,
-  cert: cert
+  // key: key,
+  // cert: cert
 };
 
 function checkCookie(req, res) {
@@ -199,9 +200,8 @@ app.get('/load-configuration-file', (req, res) => {
   return res.json(configFile)
 });
 
-app.use('/scripts', express.static(__dirname + '/node_modules/js-yaml/dist'));
 
-var server = https.createServer(options, app);
+var server = http.createServer(options, app);
 
 server.listen(port, () => {
   console.log(`server starting on port : ${port} ...`)

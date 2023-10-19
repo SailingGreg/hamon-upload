@@ -1,0 +1,50 @@
+.dot {
+  height: 12px;
+  width: 12px;
+  background-color: lightgray;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.bg-green {
+  background-color: lightgreen;
+}
+
+.location-wrapper {
+margin-bottom: 8px;
+}
+
+.location-title {
+display: inline;
+margin-right: 8px;
+}
+
+.location-action-button {
+margin-right: 8px;
+}
+
+.header-wrapper {
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
+.header-title {
+margin-right: 8px;
+display: inline;
+}
+
+.header-action-button {
+margin-right: 8px;
+}
+
+.location-content-wrapper {
+margin-bottom: 8px;
+}
+
+.location-content-label {
+margin-right: 8px;
+margin-bottom: 8px;
+display: inline-block;
+min-width: 80px;
+}
