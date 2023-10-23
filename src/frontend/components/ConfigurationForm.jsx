@@ -283,10 +283,11 @@ class ConfigurationForm extends React.Component {
         style={{ display: "flex", flexDirection: "column", maxWidth: 620 }}
       >
         <div className={styles["header-wrapper"]}>
-          <h3 className={styles["header-title"]}>Locations:</h3>
+          <h2 className={styles["header-title"]}>Locations:</h2>
           <input
             value={searchTerm}
             placeholder="Search.."
+            style={{ padding: 4 }}
             className={styles["header-title"]}
             onChange={(e) => this.setState({ searchTerm: e?.target?.value })}
           />
@@ -388,7 +389,7 @@ class ConfigurationForm extends React.Component {
                         {location?.name}
                       </span>
                     </td>
-                    <td style={{textAlign: 'center'}}>
+                    <td style={{ textAlign: "center" }}>
                       <button
                         type="button"
                         className={styles["location-action-button"]}
