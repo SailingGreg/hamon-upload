@@ -388,7 +388,7 @@ class ConfigurationForm extends React.Component {
                         {location?.name}
                       </span>
                     </td>
-                    <td>
+                    <td style={{textAlign: 'center'}}>
                       <button
                         type="button"
                         className={styles["location-action-button"]}
