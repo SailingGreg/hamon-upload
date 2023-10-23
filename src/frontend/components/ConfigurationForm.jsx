@@ -379,7 +379,7 @@ class ConfigurationForm extends React.Component {
                         {isLocationEnabled ? (
                           <HiSignal color="white" size={24} />
                         ) : (
-                          <HiSignalSlash color="black" size={24}/>
+                          <HiSignalSlash color="black" size={24} />
                         )}
                       </span>
                     </td>
@@ -466,6 +466,7 @@ class ConfigurationForm extends React.Component {
                             fieldComponent = (
                               <select
                                 id={fieldId}
+                                style={{ minWidth: 150 }}
                                 value={
                                   typeof fieldValue == "boolean"
                                     ? fieldValue
@@ -499,6 +500,7 @@ class ConfigurationForm extends React.Component {
                             fieldComponent = (
                               <select
                                 id={fieldId}
+                                style={{ minWidth: 220 }}
                                 value={fieldValue}
                                 readOnly={isReadOnly}
                                 onChange={(e) => {
@@ -525,6 +527,7 @@ class ConfigurationForm extends React.Component {
                             fieldComponent = (
                               <input
                                 id={fieldId}
+                                style={{ minWidth: 220 }}
                                 type={
                                   fieldDefinition.type === "password"
                                     ? "password"
@@ -555,6 +558,7 @@ class ConfigurationForm extends React.Component {
                             >
                               <label
                                 htmlFor={fieldId}
+                                style={{ minWidth: 100 }}
                                 className={styles["location-content-label"]}
                               >
                                 {fieldDefinitionLabel || fieldDefinitionKey}
