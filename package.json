@@ -5,7 +5,7 @@
   "description": "HAMon ETS configuration upload utility",
   "license": "MIT",
   "scripts": {
-    "build": "webpack",
+    "build": "webpack --mode=production",
     "dev": "concurrently --kill-others \"yarn watch:frontend\" \"yarn watch:backend\" --names \"FRONTEND,BACKEND\"",
     "postinstall": "yarn build",
     "start": "webpack && node backend.js",
