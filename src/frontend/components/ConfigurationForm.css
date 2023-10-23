@@ -1,13 +1,15 @@
 .dot {
-  height: 12px;
-  width: 12px;
+  height: 28px;
+  width: 28px;
+  padding: 2px;
+  padding-top: 4px;
   background-color: lightgray;
   border-radius: 50%;
   display: inline-block;
 }
 
 .bg-green {
-  background-color: lightgreen;
+  background-color: #228B22;
 }
 
 .location-wrapper {

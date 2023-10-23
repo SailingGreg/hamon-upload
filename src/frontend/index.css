@@ -13,3 +13,4 @@ tr:nth-child(even) {background: #181818 }
 tr:nth-child(odd) {background: 	#202020 }
 
 td{background:#282828; padding: 8px }
+button{min-width: 70px;  padding: 4px; padding-left: 8px; padding-right: 8px}

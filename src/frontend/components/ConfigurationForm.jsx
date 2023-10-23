@@ -8,6 +8,13 @@ import {
   UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
   defaultLocationConfig,
 } from "../utils/constants";
+import {
+  HiSignal,
+  HiSignalSlash,
+  HiMiniArrowsUpDown,
+  HiMiniArrowDown,
+  HiMiniArrowUp,
+} from "react-icons/hi2";
 
 const CONFIGURATION_FORM_ID = "configuration-edit-form";
 const fileNameRegex = /\s|\(|\)/g;
@@ -21,7 +28,7 @@ class ConfigurationForm extends React.Component {
       currentlyEditedLocationBackup: null,
       newLocationId: false,
       configurationsToSave: [],
-      searchTerm: '',
+      searchTerm: "",
       configFileUpload: false,
       sortStatusDir: null,
       sortNameDir: null,
@@ -93,12 +100,22 @@ class ConfigurationForm extends React.Component {
     const sortStatusDir = this?.state?.sortStatusDir;
     const sortNameDir = this?.state?.sortNameDir;
 
-    const statusColumnTitle =
-      "status" +
-      (sortStatusDir === "ASC" ? "↓" : sortStatusDir === "DESC" ? "↑" : " ");
-    const nameColumnTitle =
-      "name" +
-      (sortNameDir === "ASC" ? "↓" : sortNameDir === "DESC" ? "↑" : " ");
+    const statusColumnIcon =
+      sortStatusDir === "ASC" ? (
+        <HiMiniArrowDown />
+      ) : sortStatusDir === "DESC" ? (
+        <HiMiniArrowUp />
+      ) : (
+        <HiMiniArrowsUpDown />
+      );
+    const nameColumnIcon =
+      sortNameDir === "ASC" ? (
+        <HiMiniArrowDown />
+      ) : sortNameDir === "DESC" ? (
+        <HiMiniArrowUp />
+      ) : (
+        <HiMiniArrowsUpDown />
+      );
 
     if (!configFile?.locations) {
       return <form id={CONFIGURATION_FORM_ID} style={{ maxWidth: 620 }}></form>;
@@ -130,7 +147,6 @@ class ConfigurationForm extends React.Component {
         return 0;
       }
     });
-
 
     const fieldsDefinitionArray = Object.entries(fieldsDefinition);
 
@@ -296,18 +312,47 @@ class ConfigurationForm extends React.Component {
           <tbody>
             <tr className={styles["location-wrapper"]}>
               <th
-                style={{ textAlign: "center", padding: "0.5rem" }}
+                style={{
+                  padding: "0.5rem",
+                  minWidth: 80,
+                }}
                 onClick={onChangeSortDirPress("sortStatusDir")}
               >
-                {statusColumnTitle}
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  status
+                  {statusColumnIcon}
+                </span>
               </th>
               <th
-                style={{ textAlign: "center", padding: "0.5rem" }}
+                style={{
+                  padding: "0.5rem",
+                  minWidth: 150,
+                }}
                 onClick={onChangeSortDirPress("sortNameDir")}
               >
-                {nameColumnTitle}
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  name
+                  {nameColumnIcon}
+                </span>
               </th>
-              <th style={{ textAlign: "center", padding: "0.5rem" }}>
+              <th
+                style={{
+                  padding: "0.5rem",
+                  minWidth: 150,
+                }}
+              >
                 actions
               </th>
             </tr>
@@ -329,9 +374,13 @@ class ConfigurationForm extends React.Component {
               return (
                 <React.Fragment key={locationKey}>
                   <tr className={styles["location-wrapper"]}>
-                    <td style={{ width: 25 }}>
+                    <td style={{ textAlign: "center" }}>
                       <span className={locationEnabledClassName}>
-                        {isLocationEnabled}
+                        {isLocationEnabled ? (
+                          <HiSignal color="white" size={24} />
+                        ) : (
+                          <HiSignalSlash color="black" size={24}/>
+                        )}
                       </span>
                     </td>
                     <td>
