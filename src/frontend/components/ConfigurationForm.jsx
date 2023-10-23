@@ -1,6 +1,6 @@
 import React from "react";
 import styles from "./ConfigurationForm.css";
-import fieldsDefinition from "../utils/fields-definition";
+import fieldsDefinition, { CONFIG_FILE_PASSWORD_KEY } from "../utils/fields-definition";
 import uploadFile from "../utils/upload-file";
 import {
   LOAD_CONFIGURATION_ENDPOINT,
@@ -209,9 +209,10 @@ class ConfigurationForm extends React.Component {
       });
 
     const uploadFileHandler =
-      (locationKey, fieldDefinitionKey) => async (file) => {
+      (locationKey, fieldDefinitionKey) => async (file, target) => {
         if (file && !fileNameRegex.test(file?.name)) {
           let configFilePassword;
+          console.log('file?.type ', file?.type )
           if (file?.type === "text/xml") {
             // HANDLE XML CONFIG
             this.setState({ configFileUpload: true });
@@ -233,7 +234,7 @@ class ConfigurationForm extends React.Component {
               "Enter config password (Leave empty is config is not secured)"
             );
             if (configFilePassword == null) {
-              e.target.value = null;
+              target.value = null;
               return false;
             }
             this.setState({ configFileUpload: true });
@@ -245,7 +246,7 @@ class ConfigurationForm extends React.Component {
             );
             if (!uploadSuccess) {
               // upload failed, do not continue
-              e.target.value = null;
+              target.value = null;
               this.setState({
                 configFileUpload: false,
               });
@@ -273,7 +274,7 @@ class ConfigurationForm extends React.Component {
           alert(
             "Incorrect file or file has incorrect name (No spaces or parentheses)"
           );
-          e.target.value = null;
+          target.value = null;
         }
       };
 
@@ -378,9 +379,17 @@ class ConfigurationForm extends React.Component {
                     <td style={{ textAlign: "center" }}>
                       <span className={locationEnabledClassName}>
                         {isLocationEnabled ? (
-                          <HiSignal color="white" size={24} />
+                          <HiSignal
+                            color="white"
+                            size={24}
+                            style={{ marginTop: 2 }}
+                          />
                         ) : (
-                          <HiSignalSlash color="black" size={24} />
+                          <HiSignalSlash
+                            color="black"
+                            size={24}
+                            style={{ marginTop: 2 }}
+                          />
                         )}
                       </span>
                     </td>
@@ -576,7 +585,7 @@ class ConfigurationForm extends React.Component {
                                     await uploadFileHandler(
                                       locationKey,
                                       fieldDefinitionKey
-                                    )(file);
+                                    )(file, e?.target);
                                   }}
                                 />
                               )}
