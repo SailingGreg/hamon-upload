@@ -12,6 +12,7 @@ import {
   HiSignal,
   HiSignalSlash,
   HiMiniArrowsUpDown,
+  HiOutlineMinus,
   HiMiniArrowDown,
   HiMiniArrowUp,
 } from "react-icons/hi2";
@@ -106,7 +107,7 @@ class ConfigurationForm extends React.Component {
       ) : sortStatusDir === "DESC" ? (
         <HiMiniArrowUp />
       ) : (
-        <HiMiniArrowsUpDown />
+        <HiOutlineMinus />
       );
     const nameColumnIcon =
       sortNameDir === "ASC" ? (
@@ -114,7 +115,7 @@ class ConfigurationForm extends React.Component {
       ) : sortNameDir === "DESC" ? (
         <HiMiniArrowUp />
       ) : (
-        <HiMiniArrowsUpDown />
+        <HiOutlineMinus />
       );
 
     if (!configFile?.locations) {
