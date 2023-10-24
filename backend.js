@@ -17,12 +17,12 @@ const port = process.env.PORT || 8080;
 const fs = require('fs');
 const path = require('path');
 const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
 const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
 const cert_key = "/etc/letsencrypt/live/home.monitor-software.com/cert.pem"
 const ca_file = "/etc/letsencrypt/live/home.monitor-software.com/chain.pem"
-
 const dev_cert = __dirname + "/../certs/selfsigned.crt"
 const dev_key = __dirname + "/../certs/selfsigned.key"
 
@@ -45,20 +45,6 @@ app.use('/static', express.static(__dirname + '/dist/static'));
 app.use(cookieParser());
 app.use(fileupload());
 app.use(bodyParser.json());
-
-// check files and load cert and key
-if (fs.existsSync(key_file)) { // production
-    var key = fs.readFileSync(key_file);
-    var cert = fs.readFileSync(cert_key);
-} else {
-    // var key = fs.readFileSync(dev_key);
-    // var cert = fs.readFileSync(dev_cert);
-}
-
-var options = {
-  // key: key,
-  // cert: cert
-};
 
 function checkCookie(req, res) {
   if (!req.cookies[SECURITY_COOKIE_NAME]) {
@@ -200,8 +186,23 @@ app.get('/load-configuration-file', (req, res) => {
   return res.json(configFile)
 });
 
+// check files and load cert and key
+if (NODE_ENV === 'production' && fs.existsSync(key_file)) { // production
+  var key = fs.readFileSync(key_file);
+  var cert = fs.readFileSync(cert_key);
+}
 
-var server = http.createServer(options, app);
+var serverOptions = {
+  key: key,
+  cert: cert
+};
+
+let server
+if(NODE_ENV === 'development') {
+  server = http.createServer({}, app);
+} else {
+  server = https.createServer(serverOptions, app);
+}
 
 server.listen(port, () => {
   console.log(`server starting on port : ${port} ...`)
