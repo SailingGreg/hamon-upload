@@ -5,10 +5,10 @@
   "description": "HAMon ETS configuration upload utility",
   "license": "MIT",
   "scripts": {
-    "postinstall": "yarn build",
+    "postinstall": "npm run build",
     "build": "webpack --mode=production",
-    "start": "yarn build && NODE_ENV=production node backend.js",
-    "dev": "concurrently --kill-others \"yarn watch:frontend\" \"yarn watch:backend\" --names \"FRONTEND,BACKEND\"",
+    "start": "npm run build && NODE_ENV=production node backend.js",
+    "dev": "concurrently --kill-others \"npm run watch:frontend\" \"npm run watch:backend\" --names \"FRONTEND,BACKEND\"",
     "watch:backend": "nodemon backend.js",
     "watch:frontend": "webpack --watch --mode=development"
   },
