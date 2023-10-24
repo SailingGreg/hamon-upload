@@ -378,7 +378,7 @@ class ConfigurationForm extends React.Component {
                   <tr className={styles["location-wrapper"]}>
                     <td style={{ textAlign: "center" }}>
                       <span className={locationEnabledClassName}>
-                        {isLocationEnabled ? (
+                        {/* {(
                           <HiSignal
                             color="white"
                             size={24}
@@ -390,7 +390,7 @@ class ConfigurationForm extends React.Component {
                             size={24}
                             style={{ marginTop: 2 }}
                           />
-                        )}
+                        )} */}
                       </span>
                     </td>
                     <td>
