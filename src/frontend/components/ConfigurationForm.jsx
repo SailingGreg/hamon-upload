@@ -47,50 +47,6 @@ class ConfigurationForm extends React.Component {
         this.setState({ configFile: data });
         setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 100);
       });
-
-    document
-      .getElementById(CONFIGURATION_FORM_ID)
-      .addEventListener("submit", (e) => {
-        e.preventDefault();
-        const response = window.confirm(
-          "Update the configuration and location file?"
-        );
-        if (!response) {
-          return;
-        }
-
-        fetch(UPLOAD_CONFIGURATION_ENDPOINT, {
-          body: JSON.stringify({
-            configurationsToSave: this?.state?.configurationsToSave,
-            configFile: this?.state?.configFile,
-          }),
-          method: "post",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.error) {
-              window.alert(data.error);
-              return;
-            }
-            if (data.msg) {
-              window.alert(data.msg);
-            }
-            this.setState({
-              currentlyEdited: null,
-              newLocationId: null,
-              configurationsToSave: [],
-            });
-          });
-      });
-  }
-
-  componentWillUnmount() {
-    document
-      .getElementById(CONFIGURATION_FORM_ID)
-      .removeEventListener("submit", null);
   }
 
   render() {
@@ -150,6 +106,42 @@ class ConfigurationForm extends React.Component {
     });
 
     const fieldsDefinitionArray = Object.entries(fieldsDefinition);
+
+    const onSubmit = (e) => {
+      e.preventDefault();
+      const response = window.confirm(
+        "Update the configuration and location file?"
+      );
+      if (!response) {
+        return;
+      }
+
+      fetch(UPLOAD_CONFIGURATION_ENDPOINT, {
+        body: JSON.stringify({
+          configurationsToSave: this?.state?.configurationsToSave,
+          configFile: this?.state?.configFile,
+        }),
+        method: "post",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            window.alert(data.error);
+            return;
+          }
+          if (data.msg) {
+            window.alert(data.msg);
+          }
+          this.setState({
+            currentlyEdited: null,
+            newLocationId: null,
+            configurationsToSave: [],
+          });
+        });
+    }
 
     const onAddLocationPress = () => {
       const newLocationConfig = defaultLocationConfig;
@@ -283,6 +275,7 @@ class ConfigurationForm extends React.Component {
       <form
         id={CONFIGURATION_FORM_ID}
         style={{ display: "flex", flexDirection: "column", maxWidth: 620 }}
+        onSubmit={onSubmit}
       >
         <div className={styles["header-wrapper"]}>
           <h2 className={styles["header-title"]}>Locations:</h2>
