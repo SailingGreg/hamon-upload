@@ -9,9 +9,9 @@ import {
   defaultLocationConfig,
 } from "../utils/constants";
 import {
-  HiSignal,
-  HiSignalSlash,
-  HiMiniArrowsUpDown,
+  // HiSignal,
+  // HiSignalSlash,
+  // HiMiniArrowsUpDown,
   HiOutlineMinus,
   HiMiniArrowDown,
   HiMiniArrowUp,
@@ -37,6 +37,7 @@ class ConfigurationForm extends React.Component {
   }
 
   componentDidMount() {
+    // reading configuration
     fetch(LOAD_CONFIGURATION_ENDPOINT)
       .then((response) => response.json())
       .then((data) => {
@@ -44,6 +45,16 @@ class ConfigurationForm extends React.Component {
           window.alert(data.error);
           return;
         }
+
+        // Add hapi false to every location that has it undefined
+        if(data?.locations) {
+          for (const propertyName in data.locations) {
+            if(!data.locations[propertyName].hapi) {
+              data.locations[propertyName].hapi = false
+            }
+          }
+        }
+        
         this.setState({ configFile: data });
         setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 100);
       });
