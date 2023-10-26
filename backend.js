@@ -46,6 +46,19 @@ app.use(cookieParser());
 app.use(fileupload());
 app.use(bodyParser.json());
 
+const locationTemplate = {
+  name: "",
+  desc: "",
+  enabled: false,
+  hapi: false,
+  dns: "",
+  port: 1371,
+  device: "generic",
+  phyAddr: "15.15.15",
+  logging: 'info',
+  config: ""
+}
+
 function checkCookie(req, res) {
   if (!req.cookies[SECURITY_COOKIE_NAME]) {
     // !IMPORTANT TODO: ADDITIONAL COOKIE CHECK, CANNOT DO THIS WITH PROVIDED DATA, CHECKING ONLY IF COOKIE EXISTS
@@ -180,55 +193,31 @@ app.get('/load-configuration-file', (req, res) => {
   let configFile
   try {
     configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
-     //console.log(configFile) 
       
     let newConfig = {
-          title : configFile["title"],
-          influxdb : configFile["influxdb"],
-          locations : {
-            }
-      }
-     // create new object template
-    tmpl = {
-        name: "",
-        desc: "",
-        enabled: false,
-        hapi: false,
-        dns: "",
-        port: 1371,
-        device: "generic",
-        phyAddr: "15.15.15",
-        logging: 'info',
-        config: ""
-     }
-     // could make the following conditional on no existing entries
-     //if (configFile.locations['Location-1']["hapi"] === undefined) {}
-     // map the fields
-     for (loc in configFile.locations) {
-         const tmp = Object.create(tmpl)
-         //console.log( loc)
-         // copy location and add hapi if not defined
-         //console.log(configFile.locations[loc])
-         tmp.name = configFile.locations[loc]["name"]
-         tmp.desc = configFile.locations[loc]["desc"]
-         tmp.enabled = configFile.locations[loc]["enabled"]
-         if (configFile.locations[loc]["hapi"] === undefined) {
-             tmp.hapi = false
-         } else {
-             tmp.hapi = configFile.locations[loc]["hapi"]
-         }   
-         tmp.dns = configFile.locations[loc]["dns"]
-         tmp.port = configFile.locations[loc]["port"]
-         tmp.device = configFile.locations[loc]["device"]
-         tmp.phyAddr = configFile.locations[loc]["phyAddr"]
-         tmp.logging = configFile.locations[loc]["logging"]
-         tmp.config = configFile.locations[loc]["config"]
+        ...configFile,
+        locations : {}
+    }
 
-         //console.log(loc)
-         // this is not right!
-         newConfig["locations"][loc] = tmp
+     // map the fields
+     // we are doing this to persist properties in order if field wasn't in file in first place
+     for (locationKey in configFile.locations) {
+         const tmp = Object.create(locationTemplate)
+         const currentLocation = configFile.locations[locationKey]
+         // copy location and add hapi if not defined
+         tmp.name = currentLocation['name']
+         tmp.desc = currentLocation['desc']
+         tmp.enabled = currentLocation['enabled']
+         tmp.hapi = !!currentLocation['hapi']
+         tmp.dns = currentLocation['dns']
+         tmp.port = currentLocation['port']
+         tmp.device = currentLocation['device']
+         tmp.phyAddr = currentLocation['phyAddr']
+         tmp.logging = currentLocation['logging']
+         tmp.config = currentLocation['config']
+
+         newConfig['locations'][locationKey] = tmp
      }
-     //console.log(newConfig)
      configFile = newConfig
   } catch (err) {
     return res.json({ error: 'Configuration file not found' })
