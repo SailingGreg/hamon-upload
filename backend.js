@@ -180,6 +180,56 @@ app.get('/load-configuration-file', (req, res) => {
   let configFile
   try {
     configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
+     //console.log(configFile) 
+      
+    let newConfig = {
+          title : configFile["title"],
+          influxdb : configFile["influxdb"],
+          locations : {
+            }
+      }
+     // create new object template
+    tmpl = {
+        name: "",
+        desc: "",
+        enabled: false,
+        hapi: false,
+        dns: "",
+        port: 1371,
+        device: "generic",
+        phyAddr: "15.15.15",
+        logging: 'info',
+        config: ""
+     }
+     // could make the following conditional on no existing entries
+     //if (configFile.locations['Location-1']["hapi"] === undefined) {}
+     // map the fields
+     for (loc in configFile.locations) {
+         const tmp = Object.create(tmpl)
+         //console.log( loc)
+         // copy location and add hapi if not defined
+         //console.log(configFile.locations[loc])
+         tmp.name = configFile.locations[loc]["name"]
+         tmp.desc = configFile.locations[loc]["desc"]
+         tmp.enabled = configFile.locations[loc]["enabled"]
+         if (configFile.locations[loc]["hapi"] === undefined) {
+             tmp.hapi = false
+         } else {
+             tmp.hapi = configFile.locations[loc]["hapi"]
+         }   
+         tmp.dns = configFile.locations[loc]["dns"]
+         tmp.port = configFile.locations[loc]["port"]
+         tmp.device = configFile.locations[loc]["device"]
+         tmp.phyAddr = configFile.locations[loc]["phyAddr"]
+         tmp.logging = configFile.locations[loc]["logging"]
+         tmp.config = configFile.locations[loc]["config"]
+
+         //console.log(loc)
+         // this is not right!
+         newConfig["locations"][loc] = tmp
+     }
+     //console.log(newConfig)
+     configFile = newConfig
   } catch (err) {
     return res.json({ error: 'Configuration file not found' })
   }
