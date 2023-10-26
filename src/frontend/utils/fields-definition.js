@@ -44,6 +44,7 @@ const fieldsDefinition = {
   },
   [CONFIG_FILE_PASSWORD_KEY]: {
     type: 'password',
+    label: 'Config pass:',
   },
 }
 
