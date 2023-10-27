@@ -16,13 +16,13 @@ const app = express();
 const port = process.env.PORT || 8080;
 const fs = require('fs');
 const path = require('path');
-const { etsProjectParser } = require('./utils/etsProjectParser');
+const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
 const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
 const cert_key = "/etc/letsencrypt/live/home.monitor-software.com/cert.pem"
 const ca_file = "/etc/letsencrypt/live/home.monitor-software.com/chain.pem"
-
 const dev_cert = __dirname + "/../certs/selfsigned.crt"
 const dev_key = __dirname + "/../certs/selfsigned.key"
 
@@ -40,24 +40,24 @@ const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
 const SECURITY_COOKIE_NAME = 'grafana_session'
 //--- !!!! END OF CONFIGURATION !!!! ---//
 
-app.use(express.static(__dirname + '/html'));
+app.use(express.static(__dirname + '/dist'));
+app.use('/static', express.static(__dirname + '/dist/static'));
 app.use(cookieParser());
 app.use(fileupload());
 app.use(bodyParser.json());
 
-// check files and load cert and key
-if (fs.existsSync(key_file)) { // production
-    var key = fs.readFileSync(key_file);
-    var cert = fs.readFileSync(cert_key);
-} else {
-    var key = fs.readFileSync(dev_key);
-    var cert = fs.readFileSync(dev_cert);
+const locationTemplate = {
+  name: "",
+  desc: "",
+  enabled: false,
+  hapi: false,
+  dns: "",
+  port: 1371,
+  device: "generic",
+  phyAddr: "15.15.15",
+  logging: 'info',
+  config: ""
 }
-
-var options = {
-  key: key,
-  cert: cert
-};
 
 function checkCookie(req, res) {
   if (!req.cookies[SECURITY_COOKIE_NAME]) {
@@ -193,15 +193,55 @@ app.get('/load-configuration-file', (req, res) => {
   let configFile
   try {
     configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
+      
+    let newConfig = {
+        ...configFile,
+        locations : {}
+    }
+
+     // map the fields
+     // we are doing this to persist properties in order if field wasn't in file in first place
+     for (locationKey in configFile.locations) {
+         const tmp = Object.create(locationTemplate)
+         const currentLocation = configFile.locations[locationKey]
+         // copy location and add hapi if not defined
+         tmp.name = currentLocation['name']
+         tmp.desc = currentLocation['desc']
+         tmp.enabled = currentLocation['enabled']
+         tmp.hapi = !!currentLocation['hapi']
+         tmp.dns = currentLocation['dns']
+         tmp.port = currentLocation['port']
+         tmp.device = currentLocation['device']
+         tmp.phyAddr = currentLocation['phyAddr']
+         tmp.logging = currentLocation['logging']
+         tmp.config = currentLocation['config']
+
+         newConfig['locations'][locationKey] = tmp
+     }
+     configFile = newConfig
   } catch (err) {
     return res.json({ error: 'Configuration file not found' })
   }
   return res.json(configFile)
 });
 
-app.use('/scripts', express.static(__dirname + '/node_modules/js-yaml/dist'));
+// check files and load cert and key
+if (NODE_ENV === 'production' && fs.existsSync(key_file)) { // production
+  var key = fs.readFileSync(key_file);
+  var cert = fs.readFileSync(cert_key);
+}
 
-var server = https.createServer(options, app);
+var serverOptions = {
+  key: key,
+  cert: cert
+};
+
+let server
+if(NODE_ENV === 'development') {
+  server = http.createServer({}, app);
+} else {
+  server = https.createServer(serverOptions, app);
+}
 
 server.listen(port, () => {
   console.log(`server starting on port : ${port} ...`)
