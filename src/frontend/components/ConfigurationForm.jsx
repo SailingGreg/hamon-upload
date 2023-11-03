@@ -1,6 +1,8 @@
 import React from "react";
 import styles from "./ConfigurationForm.css";
-import fieldsDefinition, { CONFIG_FILE_PASSWORD_KEY } from "../utils/fields-definition";
+import fieldsDefinition, {
+  CONFIG_FILE_PASSWORD_KEY,
+} from "../utils/fields-definition";
 import uploadFile from "../utils/upload-file";
 import {
   LOAD_CONFIGURATION_ENDPOINT,
@@ -16,6 +18,7 @@ import {
   HiMiniArrowDown,
   HiMiniArrowUp,
 } from "react-icons/hi2";
+import UploadingFileSpinner from "./UploadingFileSpinner";
 
 const CONFIGURATION_FORM_ID = "configuration-edit-form";
 const fileNameRegex = /\s|\(|\)/g;
@@ -30,7 +33,6 @@ class ConfigurationForm extends React.Component {
       newLocationId: false,
       configurationsToSave: [],
       searchTerm: "",
-      configFileUpload: false,
       sortStatusDir: null,
       sortNameDir: null,
     };
@@ -45,7 +47,7 @@ class ConfigurationForm extends React.Component {
           window.alert(data.error);
           return;
         }
-        
+
         this.setState({ configFile: data });
         setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 100);
       });
@@ -55,9 +57,10 @@ class ConfigurationForm extends React.Component {
     const configFile = this?.state?.configFile;
     const newLocationId = this?.state?.newLocationId;
     const searchTerm = this?.state?.searchTerm;
-    const configFileUpload = this?.state?.configFileUpload;
     const sortStatusDir = this?.state?.sortStatusDir;
     const sortNameDir = this?.state?.sortNameDir;
+    const setUploadingFile = this?.props?.setUploadingFile;
+    const configFileUpload = this?.props?.uploadingFile;
 
     const statusColumnIcon =
       sortStatusDir === "ASC" ? (
@@ -143,7 +146,7 @@ class ConfigurationForm extends React.Component {
             configurationsToSave: [],
           });
         });
-    }
+    };
 
     const onAddLocationPress = () => {
       const newLocationConfig = defaultLocationConfig;
@@ -207,10 +210,9 @@ class ConfigurationForm extends React.Component {
       (locationKey, fieldDefinitionKey) => async (file, target) => {
         if (file && !fileNameRegex.test(file?.name)) {
           let configFilePassword;
-          console.log('file?.type ', file?.type )
           if (file?.type === "text/xml") {
             // HANDLE XML CONFIG
-            this.setState({ configFileUpload: true });
+            setUploadingFile(true);
             const uploadSuccess = await uploadFile(
               file,
               UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
@@ -218,21 +220,19 @@ class ConfigurationForm extends React.Component {
             );
             if (!uploadSuccess) {
               // upload failed, do not continue
-              this.setState({
-                configFileUpload: false,
-              });
+              setUploadingFile(false);
               return;
             }
           } else {
             // HANDLE KNXPROJECT CONFIG
             configFilePassword = prompt(
-              "Enter config password (Leave empty is config is not secured)"
+              "Enter config password (Leave empty if config is not secured)"
             );
             if (configFilePassword == null) {
               target.value = null;
               return false;
             }
-            this.setState({ configFileUpload: true });
+            setUploadingFile(true);
             const uploadSuccess = await uploadFile(
               file,
               UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
@@ -242,9 +242,7 @@ class ConfigurationForm extends React.Component {
             if (!uploadSuccess) {
               // upload failed, do not continue
               target.value = null;
-              this.setState({
-                configFileUpload: false,
-              });
+              setUploadingFile(false);
               return false;
             }
           }
@@ -256,9 +254,9 @@ class ConfigurationForm extends React.Component {
               newConfigFile.locations[locationKey][CONFIG_FILE_PASSWORD_KEY] =
                 configFilePassword;
             }
+            setUploadingFile(false);
             return {
               config: newConfigFile,
-              configFileUpload: false,
               configurationsToSave: [
                 ...prevState?.configurationsToSave,
                 file?.name,
@@ -451,7 +449,7 @@ class ConfigurationForm extends React.Component {
                   </tr>
                   {isCurrentlyEdited && (
                     <tr>
-                      <td colSpan={3}>
+                      <td colSpan={3} style={{ position: "relative" }}>
                         {fieldsDefinitionArray.map((fieldDefinition) => {
                           const fieldDefinitionKey = fieldDefinition[0];
                           const fieldDefinitionValue = fieldDefinition[1];
@@ -575,7 +573,7 @@ class ConfigurationForm extends React.Component {
                                   type="file"
                                   accept=".xml,.knxproj"
                                   defaultValue=""
-                                  disabled={this.state.configFileUpload}
+                                  disabled={configFileUpload}
                                   onChange={async (e) => {
                                     const file = e?.target?.files[0];
                                     await uploadFileHandler(
@@ -588,6 +586,7 @@ class ConfigurationForm extends React.Component {
                             </div>
                           );
                         })}
+                        <UploadingFileSpinner enabled={configFileUpload} />
                       </td>
                     </tr>
                   )}
