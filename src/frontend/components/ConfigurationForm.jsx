@@ -1,6 +1,8 @@
 import React from "react";
 import styles from "./ConfigurationForm.css";
-import fieldsDefinition, { CONFIG_FILE_PASSWORD_KEY } from "../utils/fields-definition";
+import fieldsDefinition, {
+  CONFIG_FILE_PASSWORD_KEY,
+} from "../utils/fields-definition";
 import uploadFile from "../utils/upload-file";
 import {
   LOAD_CONFIGURATION_ENDPOINT,
@@ -16,6 +18,7 @@ import {
   HiMiniArrowDown,
   HiMiniArrowUp,
 } from "react-icons/hi2";
+import UploadingFileSpinner from "./UploadingFileSpinner";
 
 const CONFIGURATION_FORM_ID = "configuration-edit-form";
 const fileNameRegex = /\s|\(|\)/g;
@@ -44,7 +47,7 @@ class ConfigurationForm extends React.Component {
           window.alert(data.error);
           return;
         }
-        
+
         this.setState({ configFile: data });
         setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 100);
       });
@@ -56,8 +59,8 @@ class ConfigurationForm extends React.Component {
     const searchTerm = this?.state?.searchTerm;
     const sortStatusDir = this?.state?.sortStatusDir;
     const sortNameDir = this?.state?.sortNameDir;
-    const setUploadingFile = this?.props?.setUploadingFile
-    const configFileUpload = this?.props?.uploadingFile
+    const setUploadingFile = this?.props?.setUploadingFile;
+    const configFileUpload = this?.props?.uploadingFile;
 
     const statusColumnIcon =
       sortStatusDir === "ASC" ? (
@@ -143,7 +146,7 @@ class ConfigurationForm extends React.Component {
             configurationsToSave: [],
           });
         });
-    }
+    };
 
     const onAddLocationPress = () => {
       const newLocationConfig = defaultLocationConfig;
@@ -209,7 +212,7 @@ class ConfigurationForm extends React.Component {
           let configFilePassword;
           if (file?.type === "text/xml") {
             // HANDLE XML CONFIG
-            setUploadingFile(true)
+            setUploadingFile(true);
             const uploadSuccess = await uploadFile(
               file,
               UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
@@ -217,7 +220,7 @@ class ConfigurationForm extends React.Component {
             );
             if (!uploadSuccess) {
               // upload failed, do not continue
-              setUploadingFile(false)
+              setUploadingFile(false);
               return;
             }
           } else {
@@ -229,7 +232,7 @@ class ConfigurationForm extends React.Component {
               target.value = null;
               return false;
             }
-            setUploadingFile(true)
+            setUploadingFile(true);
             const uploadSuccess = await uploadFile(
               file,
               UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
@@ -239,7 +242,7 @@ class ConfigurationForm extends React.Component {
             if (!uploadSuccess) {
               // upload failed, do not continue
               target.value = null;
-              setUploadingFile(false)
+              setUploadingFile(false);
               return false;
             }
           }
@@ -251,7 +254,7 @@ class ConfigurationForm extends React.Component {
               newConfigFile.locations[locationKey][CONFIG_FILE_PASSWORD_KEY] =
                 configFilePassword;
             }
-            setUploadingFile(false)
+            setUploadingFile(false);
             return {
               config: newConfigFile,
               configurationsToSave: [
@@ -446,7 +449,7 @@ class ConfigurationForm extends React.Component {
                   </tr>
                   {isCurrentlyEdited && (
                     <tr>
-                      <td colSpan={3}>
+                      <td colSpan={3} style={{ position: "relative" }}>
                         {fieldsDefinitionArray.map((fieldDefinition) => {
                           const fieldDefinitionKey = fieldDefinition[0];
                           const fieldDefinitionValue = fieldDefinition[1];
@@ -583,6 +586,7 @@ class ConfigurationForm extends React.Component {
                             </div>
                           );
                         })}
+                        <UploadingFileSpinner enabled={configFileUpload} />
                       </td>
                     </tr>
                   )}
