@@ -30,7 +30,6 @@ class ConfigurationForm extends React.Component {
       newLocationId: false,
       configurationsToSave: [],
       searchTerm: "",
-      configFileUpload: false,
       sortStatusDir: null,
       sortNameDir: null,
     };
@@ -55,9 +54,10 @@ class ConfigurationForm extends React.Component {
     const configFile = this?.state?.configFile;
     const newLocationId = this?.state?.newLocationId;
     const searchTerm = this?.state?.searchTerm;
-    const configFileUpload = this?.state?.configFileUpload;
     const sortStatusDir = this?.state?.sortStatusDir;
     const sortNameDir = this?.state?.sortNameDir;
+    const setUploadingFile = this?.props?.setUploadingFile
+    const configFileUpload = this?.props?.uploadingFile
 
     const statusColumnIcon =
       sortStatusDir === "ASC" ? (
@@ -207,10 +207,9 @@ class ConfigurationForm extends React.Component {
       (locationKey, fieldDefinitionKey) => async (file, target) => {
         if (file && !fileNameRegex.test(file?.name)) {
           let configFilePassword;
-          console.log('file?.type ', file?.type )
           if (file?.type === "text/xml") {
             // HANDLE XML CONFIG
-            this.setState({ configFileUpload: true });
+            setUploadingFile(true)
             const uploadSuccess = await uploadFile(
               file,
               UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
@@ -218,9 +217,7 @@ class ConfigurationForm extends React.Component {
             );
             if (!uploadSuccess) {
               // upload failed, do not continue
-              this.setState({
-                configFileUpload: false,
-              });
+              setUploadingFile(false)
               return;
             }
           } else {
@@ -232,7 +229,7 @@ class ConfigurationForm extends React.Component {
               target.value = null;
               return false;
             }
-            this.setState({ configFileUpload: true });
+            setUploadingFile(true)
             const uploadSuccess = await uploadFile(
               file,
               UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
@@ -242,9 +239,7 @@ class ConfigurationForm extends React.Component {
             if (!uploadSuccess) {
               // upload failed, do not continue
               target.value = null;
-              this.setState({
-                configFileUpload: false,
-              });
+              setUploadingFile(false)
               return false;
             }
           }
@@ -256,9 +251,9 @@ class ConfigurationForm extends React.Component {
               newConfigFile.locations[locationKey][CONFIG_FILE_PASSWORD_KEY] =
                 configFilePassword;
             }
+            setUploadingFile(false)
             return {
               config: newConfigFile,
-              configFileUpload: false,
               configurationsToSave: [
                 ...prevState?.configurationsToSave,
                 file?.name,
@@ -575,7 +570,7 @@ class ConfigurationForm extends React.Component {
                                   type="file"
                                   accept=".xml,.knxproj"
                                   defaultValue=""
-                                  disabled={this.state.configFileUpload}
+                                  disabled={configFileUpload}
                                   onChange={async (e) => {
                                     const file = e?.target?.files[0];
                                     await uploadFileHandler(
