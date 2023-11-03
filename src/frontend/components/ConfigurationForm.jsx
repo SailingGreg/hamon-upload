@@ -226,7 +226,7 @@ class ConfigurationForm extends React.Component {
           } else {
             // HANDLE KNXPROJECT CONFIG
             configFilePassword = prompt(
-              "Enter config password (Leave empty is config is not secured)"
+              "Enter config password (Leave empty if config is not secured)"
             );
             if (configFilePassword == null) {
               target.value = null;
