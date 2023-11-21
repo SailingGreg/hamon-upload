@@ -36,7 +36,8 @@ const fieldsDefinition = {
   },
   'logging': {
     label: 'Logging:',
-    type: 'text',
+    type: 'select',
+    values: ['info', 'debug']
   },
   'config': {
     label: 'Configuration:',
