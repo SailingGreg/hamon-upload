@@ -159,11 +159,22 @@ class ConfigurationForm extends React.Component {
         {},
         newLocationConfig
       );
-      this.setState({
-        configFile: newConfigFile,
-        currentlyEdited: newLocationConfigKey,
-        newLocationId: newLocationConfigKey,
-      });
+      this.setState(
+        {
+          configFile: newConfigFile,
+          currentlyEdited: newLocationConfigKey,
+          newLocationId: newLocationConfigKey,
+        },
+        () => {
+          // move focus to the new location's Name field so it's obvious where
+          // the just-added row is (it renders at the bottom of a long list)
+          const nameField = document.getElementById(`${newLocationConfigKey}-name`);
+          if (nameField) {
+            nameField.scrollIntoView({ behavior: "smooth", block: "center" });
+            nameField.focus();
+          }
+        }
+      );
     };
 
     const onChangeSortDirPress = (sortDirStateName) => () => {
