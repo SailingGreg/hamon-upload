@@ -59,11 +59,46 @@ const locationTemplate = {
   config: ""
 }
 
-function checkCookie(req, res) {
-  if (!req.cookies[SECURITY_COOKIE_NAME]) {
-    // !IMPORTANT TODO: ADDITIONAL COOKIE CHECK, CANNOT DO THIS WITH PROVIDED DATA, CHECKING ONLY IF COOKIE EXISTS
-    return res.json({ error: 'You are not logged in' })
-  }
+// --- auth: validate the grafana_session cookie against Grafana ---
+// grafana_session is an opaque, rotating, server-side token (not a JWT), so it
+// cannot be verified locally. We ask Grafana who the user is: GET /api/user with
+// the cookie returns 200 for a live session, 401 otherwise. The cookie is shared
+// because Grafana and this app are on the same host (different ports).
+const GRAFANA_AUTH_HOST = process.env.GRAFANA_AUTH_HOST || 'localhost'
+const GRAFANA_AUTH_PORT = process.env.GRAFANA_AUTH_PORT || 3000
+
+function isAuthenticated(req) {
+  // Development is served over plain HTTP locally with no Grafana to validate
+  // against, so skip the live check to keep the dev workflow usable.
+  if (NODE_ENV === 'development') return Promise.resolve(true)
+
+  return new Promise((resolve) => {
+    const token = req.cookies[SECURITY_COOKIE_NAME]
+    if (!token) return resolve(false)
+
+    const gReq = https.request({
+      host: GRAFANA_AUTH_HOST,
+      port: GRAFANA_AUTH_PORT,
+      path: '/api/user',
+      method: 'GET',
+      headers: { Cookie: `${SECURITY_COOKIE_NAME}=${token}` },
+      rejectUnauthorized: false, // loopback cert is issued for the public domain
+      timeout: 3000,
+    }, (gRes) => {
+      gRes.resume() // drain the response
+      resolve(gRes.statusCode === 200)
+    })
+    gReq.on('error', (err) => {
+      console.error('Grafana auth validation failed:', err.message)
+      resolve(false)
+    })
+    gReq.on('timeout', () => {
+      gReq.destroy()
+      console.error('Grafana auth validation timed out')
+      resolve(false)
+    })
+    gReq.end()
+  })
 }
 
 function saveFile(basePath, fileName, file, disableBackup = false) {
@@ -97,8 +132,10 @@ function moveFile(originalPath, destinationPath, fileName) {
   }
 }
 
-app.post('/upload-configuration-file', (req, res) => {
-  checkCookie(req, res)
+app.post('/upload-configuration-file', async (req, res) => {
+  if (!(await isAuthenticated(req))) {
+    return res.status(401).json({ error: 'You are not logged in' })
+  }
   let configurationFile
   try {
     configurationFile = yaml.dump(req?.body?.configFile)
@@ -132,7 +169,9 @@ app.post('/upload-configuration-file', (req, res) => {
 });
 
 app.post('/upload-location-configuration-file', async (req, res) => {
-  checkCookie(req, res)
+  if (!(await isAuthenticated(req))) {
+    return res.status(401).json({ success: false, msg: 'You are not logged in' })
+  }
   const file = req?.files?.configFile
   const configFilePassword = req.body.configFilePassword
 
@@ -188,8 +227,10 @@ app.post('/upload-location-configuration-file', async (req, res) => {
 
 });
 
-app.get('/load-configuration-file', (req, res) => {
-  checkCookie(req, res)
+app.get('/load-configuration-file', async (req, res) => {
+  if (!(await isAuthenticated(req))) {
+    return res.status(401).json({ error: 'You are not logged in' })
+  }
   let configFile
   try {
     configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
