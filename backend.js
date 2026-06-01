@@ -194,8 +194,7 @@ app.post('/upload-location-configuration-file', async (req, res) => {
         for (let key in groupAddresses) {
           addr++;
           if (groupAddresses.hasOwnProperty(key)) {
-            //if (groupAddresses[key].dpt != undefined)
-            if (groupAddresses[key].datapointType != undefined)
+            if (groupAddresses[key].dpt != undefined)
               dpts++;
             // console.log(key, groupAddresses[key].dpt,
             //     groupAddresses[key].name);

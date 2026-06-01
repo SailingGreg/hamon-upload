@@ -37,7 +37,7 @@ const fieldsDefinition = {
   'logging': {
     label: 'Logging:',
     type: 'select',
-    values: ['info', 'debug']
+    values: ['error', 'warn', 'info', 'debug']
   },
   'config': {
     label: 'Configuration:',

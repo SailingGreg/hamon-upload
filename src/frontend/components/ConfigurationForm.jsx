@@ -150,11 +150,14 @@ class ConfigurationForm extends React.Component {
 
     const onAddLocationPress = () => {
       const newLocationConfig = defaultLocationConfig;
-      const locationsLength = Object.keys(
-        this?.state?.configFile?.locations
-      )?.length;
+      const existingLocations = this?.state?.configFile?.locations || {};
       let newConfigFile = Object.assign({}, this?.state?.configFile);
-      const newLocationConfigKey = `Location-${locationsLength + 1}`;
+      // use max existing Location-N index + 1 so prior deletes don't collide
+      const maxIdx = Object.keys(existingLocations).reduce((m, k) => {
+        const n = parseInt((k.match(/^Location-(\d+)$/) || [])[1], 10);
+        return Number.isFinite(n) && n > m ? n : m;
+      }, 0);
+      const newLocationConfigKey = `Location-${maxIdx + 1}`;
       newConfigFile.locations[newLocationConfigKey] = Object.assign(
         {},
         newLocationConfig
@@ -287,6 +290,10 @@ class ConfigurationForm extends React.Component {
         id={CONFIGURATION_FORM_ID}
         style={{ display: "flex", flexDirection: "column", maxWidth: 620 }}
         onSubmit={onSubmit}
+        onKeyDown={(e) => {
+          // don't let Enter in a text/file field submit the form (and pop the save confirm)
+          if (e.key === "Enter" && e.target.tagName === "INPUT") e.preventDefault();
+        }}
       >
         <div className={styles["header-wrapper"]}>
           <h2 className={styles["header-title"]}>Locations:</h2>
@@ -369,7 +376,7 @@ class ConfigurationForm extends React.Component {
               const isLocationEnabled = location["enabled"];
               const isCurrentlyEdited =
                 this.state?.currentlyEdited === locationKey;
-              if (searchTerm && !(location?.name || "").includes(searchTerm)) {
+              if (searchTerm && !(location?.name || "").toLowerCase().includes(searchTerm.toLowerCase())) {
                 // this record dosent meet requirements of search input, skip
                 return null;
               }
