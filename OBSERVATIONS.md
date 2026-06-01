@@ -107,13 +107,11 @@ dedicated `hamon` user) with write access only to the dirs it needs.
 
 ---
 
-## 3. 🟡 `dpt` vs `datapointType` field mismatch (DPT count always 0)
+## 3. ✅ `dpt` vs `datapointType` field mismatch (DPT count always 0) — FIXED v0.2.1
 
-**Where:** `etsProjectParser.js:176` stores the parsed field as `dpt`, but
-`backend.js:159` counts `groupAddresses[key].datapointType`. The two names never
-match, so the "%d DPTs" tally is always 0. Likely related to hamon commit
-`0b614d9 "Change dpt property creation to etsProjectParser"`. Pick one field name
-and use it consistently on both sides.
+**Was:** `etsProjectParser.js` stores the parsed field as `dpt`, but `backend.js`
+counted `groupAddresses[key].datapointType` — never matched, so the "%d DPTs"
+tally was always 0. **Fixed:** `backend.js` now counts `groupAddresses[key].dpt`.
 
 ---
 
