@@ -598,6 +598,25 @@ class ConfigurationForm extends React.Component {
                           );
                         })}
                         <UploadingFileSpinner enabled={configFileUpload} />
+                        <div
+                          className={styles["location-content-wrapper"]}
+                          style={{ marginTop: 12 }}
+                        >
+                          <button
+                            type="button"
+                            className={styles["location-action-button"]}
+                            onClick={() => window.location.reload()}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={configFileUpload}
+                            className={styles["location-action-button"]}
+                          >
+                            Save Configuration
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )}
