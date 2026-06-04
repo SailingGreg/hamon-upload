@@ -132,13 +132,49 @@ function moveFile(originalPath, destinationPath, fileName) {
   }
 }
 
+// House convention: location names are lowercase with no special characters
+// (so they map cleanly to docker container / vpn-script names). This was never
+// enforced, so legacy names drifted (e.g. OPUS_AQUA, bartonw_lc). We normalise
+// NEW names only — an existing name is left exactly as-is, because renaming a
+// live site would orphan its InfluxDB data (tagged with the old name) and its
+// VPN container/restart mapping.
+function normaliseLocationName(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function enforceNewLocationNames(configFile, existingPath) {
+  const existingNames = new Set()
+  try {
+    const existing = yaml.load(fs.readFileSync(existingPath, 'utf8'))
+    for (const k in (existing?.locations || {})) {
+      const n = existing.locations[k]?.name
+      if (n) existingNames.add(n)
+    }
+  } catch (err) {
+    // first write or unreadable baseline: treat every name as new
+  }
+  for (const k in (configFile?.locations || {})) {
+    const loc = configFile.locations[k]
+    if (!loc?.name) continue
+    if (existingNames.has(loc.name)) continue        // existing site: untouched
+    const norm = normaliseLocationName(loc.name)
+    if (norm && norm !== loc.name) {
+      console.log(`Normalising new location name "${loc.name}" -> "${norm}"`)
+      loc.name = norm
+    }
+  }
+  return configFile
+}
+
 app.post('/upload-configuration-file', async (req, res) => {
   if (!(await isAuthenticated(req))) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
   let configurationFile
   try {
-    configurationFile = yaml.dump(req?.body?.configFile)
+    const configFile = enforceNewLocationNames(req?.body?.configFile,
+      `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
+    configurationFile = yaml.dump(configFile)
   } catch (err) {
     console.error(err)
   }
