@@ -21,7 +21,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
 const key_file = "/etc/letsencrypt/live/home.monitor-software.com/privkey.pem"
-const cert_key = "/etc/letsencrypt/live/home.monitor-software.com/cert.pem"
+// fullchain, not cert.pem: clients need the intermediate to verify the leaf
+const cert_key = "/etc/letsencrypt/live/home.monitor-software.com/fullchain.pem"
 const ca_file = "/etc/letsencrypt/live/home.monitor-software.com/chain.pem"
 const dev_cert = __dirname + "/../certs/selfsigned.crt"
 const dev_key = __dirname + "/../certs/selfsigned.key"
