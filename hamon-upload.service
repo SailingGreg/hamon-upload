@@ -10,13 +10,21 @@ Description=HA File Upload  Service
 After=multi-user.target
 
 [Service]
+# behind nginx: plain http on loopback (nginx terminates TLS and proxies
+# /upload/), so no access to the Let's Encrypt key and no need for root
+User=greg
+Group=greg
 Environment=HOME=/home/greg
+Environment=NODE_ENV=production
+Environment=TLS=0
+Environment=LISTEN_HOST=127.0.0.1
+Environment=GRAFANA_AUTH_PROTO=http
 Type=idle
 
 # working directory is /home/greg/hamon
 ExecStart=/usr/bin/node /home/greg/hamon-upload/backend.js
-StandardOutput=file:/home/greg/hamon-upload/backend.log
-StandardError=file:/home/greg/hamon-upload/backend.err
+StandardOutput=append:/home/greg/hamon-upload/backend.log
+StandardError=append:/home/greg/hamon-upload/backend.err
 
 [Install]
 WantedBy=multi-user.target

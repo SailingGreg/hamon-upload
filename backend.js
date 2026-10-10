@@ -71,6 +71,8 @@ const locationTemplate = {
 // because Grafana and this app are on the same host (different ports).
 const GRAFANA_AUTH_HOST = process.env.GRAFANA_AUTH_HOST || 'localhost'
 const GRAFANA_AUTH_PORT = process.env.GRAFANA_AUTH_PORT || 3000
+// 'http' once Grafana sits behind nginx on plain http
+const GRAFANA_AUTH_PROTO = process.env.GRAFANA_AUTH_PROTO || 'https'
 
 function isAuthenticated(req) {
   // Development is served over plain HTTP locally with no Grafana to validate
@@ -81,7 +83,7 @@ function isAuthenticated(req) {
     const token = req.cookies[SECURITY_COOKIE_NAME]
     if (!token) return resolve(false)
 
-    const gReq = https.request({
+    const gReq = (GRAFANA_AUTH_PROTO === 'http' ? http : https).request({
       host: GRAFANA_AUTH_HOST,
       port: GRAFANA_AUTH_PORT,
       path: '/api/user',
@@ -317,8 +319,13 @@ app.get('/load-configuration-file', async (req, res) => {
   return res.json(configFile)
 });
 
+// Behind nginx (TLS=0) this serves plain http, and LISTEN_HOST=127.0.0.1 keeps
+// it off the public interfaces; nginx terminates TLS and proxies /upload/ here
+const TLS = NODE_ENV === 'production' && process.env.TLS !== '0'
+const LISTEN_HOST = process.env.LISTEN_HOST   // unset = all interfaces
+
 // check files and load cert and key
-if (NODE_ENV === 'production' && fs.existsSync(key_file)) { // production
+if (TLS && fs.existsSync(key_file)) { // production
   var key = fs.readFileSync(key_file);
   var cert = fs.readFileSync(cert_key);
 }
@@ -329,14 +336,14 @@ var serverOptions = {
 };
 
 let server
-if(NODE_ENV === 'development') {
+if(!TLS) {
   server = http.createServer({}, app);
 } else {
   server = https.createServer(serverOptions, app);
 }
 
-server.listen(port, () => {
-  console.log(`server starting on port : ${port} ...`)
+server.listen(port, LISTEN_HOST, () => {
+  console.log(`server starting on ${LISTEN_HOST || '*'}:${port} (${TLS ? 'https' : 'http'}) ...`)
 });
 //app.listen(port, () => console.log(`Listening on port ${port}...`));
 
