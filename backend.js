@@ -180,8 +180,7 @@ app.post('/upload-configuration-file', async (req, res) => {
     const configFile = enforceNewLocationNames(req?.body?.configFile,
       `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
     // after the name check: secrets are stored under the final name
-    extractSecrets(configFile, SECRETS_FILE,
-      `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
+    extractSecrets(configFile, SECRETS_FILE, CONFIGURATION_FILE_LOCATION)
     configurationFile = yaml.dump(configFile)
   } catch (err) {
     console.error(err)

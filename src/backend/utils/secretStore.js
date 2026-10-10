@@ -3,7 +3,8 @@
  *
  * hamon.yml is backed up nightly and archived weekly in plain text, so
  * passwords live in a separate JSON file next to it, mode 600 and owned like
- * hamon.yml (so the nightly backup, which runs as that user, can include it):
+ * the directory it is in (~/hamon: hamon.yml itself is root's once this app has
+ * written it), so the nightly backup, which runs as that user, can include it:
  *
  *   { "<location name>": { "configPass": "..." } }
  *
