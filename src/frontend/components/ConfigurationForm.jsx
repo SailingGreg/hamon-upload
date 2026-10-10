@@ -645,6 +645,15 @@ class ConfigurationForm extends React.Component {
                                 {fieldDefinitionLabel || fieldDefinitionKey}
                               </label>
                               {fieldComponent}
+                              {fieldDefinitionKey === "dns" &&
+                                dnsChecked &&
+                                !dnsCheck.ok && (
+                                  <span className={styles["dns-note"]}>
+                                    {dnsEntry
+                                      ? "Doesn't resolve - site will not work"
+                                      : "No address - site will not work"}
+                                  </span>
+                                )}
                               {fieldDefinitionType === "file" && (
                                 <input
                                   type="file"

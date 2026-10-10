@@ -16,6 +16,12 @@
   background-color: #FFB000;
 }
 
+.dns-note {
+  margin-left: 8px;
+  color: #B36B00;
+  font-weight: bold;
+}
+
 .location-wrapper {
 margin-bottom: 8px;
 }
