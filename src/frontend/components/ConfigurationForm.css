@@ -7,6 +7,31 @@
   display: inline-block;
 }
 
+/* status reason on hover - or on tap/focus, as touch screens have no hover
+   (the browser's own title tooltip is slow and absent on touch) */
+.dot {
+  position: relative;
+  cursor: help;
+}
+
+.dot[data-tip]:hover::after,
+.dot[data-tip]:focus::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #333;
+  color: #fff;
+  font-size: 13px;
+  font-weight: normal;
+  text-align: left;
+}
+
 .bg-green {
   background-color: #228B22;
 }

@@ -428,7 +428,9 @@ class ConfigurationForm extends React.Component {
                     <td style={{ textAlign: "center" }}>
                       <span
                         className={locationEnabledClassName}
-                        title={locationStatusTitle}
+                        data-tip={locationStatusTitle}
+                        aria-label={locationStatusTitle}
+                        tabIndex={0}
                       >
                         {/* {(
                           <HiSignal
