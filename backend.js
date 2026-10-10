@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
 const { maskSecrets, extractSecrets } = require('./src/backend/utils/secretStore');
+const { dnsStatus } = require('./src/backend/utils/dnsStatus');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
@@ -317,6 +318,21 @@ app.get('/load-configuration-file', async (req, res) => {
     return res.json({ error: 'Configuration file not found' })
   }
   return res.json(configFile)
+});
+
+// DNS check for the status dots: amber = enabled but the dns entry does not
+// resolve, so hamon cannot connect. Reads the on-disk hamon.yml
+app.get('/dns-status', async (req, res) => {
+  if (!(await isAuthenticated(req))) {
+    return res.status(401).json({ error: 'You are not logged in' })
+  }
+  let configFile
+  try {
+    configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
+  } catch (err) {
+    return res.json({ error: 'Configuration file not found' })
+  }
+  return res.json(await dnsStatus(configFile.locations))
 });
 
 // Behind nginx (TLS=0) this serves plain http, and LISTEN_HOST=127.0.0.1 keeps

@@ -8,6 +8,7 @@ import {
   LOAD_CONFIGURATION_ENDPOINT,
   UPLOAD_CONFIGURATION_ENDPOINT,
   UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
+  DNS_STATUS_ENDPOINT,
   defaultLocationConfig,
 } from "../utils/constants";
 import {
@@ -22,6 +23,7 @@ import UploadingFileSpinner from "./UploadingFileSpinner";
 
 const CONFIGURATION_FORM_ID = "configuration-edit-form";
 const fileNameRegex = /\s|\(|\)/g;
+const ipv4Regex = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
 
 class ConfigurationForm extends React.Component {
   constructor(props) {
@@ -35,7 +37,20 @@ class ConfigurationForm extends React.Component {
       searchTerm: "",
       sortStatusDir: null,
       sortNameDir: null,
+      dnsStatus: {},
     };
+  }
+
+  // which enabled sites' dns entries resolve (amber dot when they don't);
+  // checks the saved hamon.yml, so it is re-run after each save
+  loadDnsStatus() {
+    fetch(DNS_STATUS_ENDPOINT)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data || data.error) return;
+        this.setState({ dnsStatus: data });
+      })
+      .catch(() => {});
   }
 
   componentDidMount() {
@@ -49,6 +64,7 @@ class ConfigurationForm extends React.Component {
         }
 
         this.setState({ configFile: data });
+        this.loadDnsStatus();
         setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 100);
       });
   }
@@ -145,6 +161,7 @@ class ConfigurationForm extends React.Component {
             newLocationId: null,
             configurationsToSave: [],
           });
+          this.loadDnsStatus();
         });
     };
 
@@ -380,16 +397,39 @@ class ConfigurationForm extends React.Component {
                 // this record dosent meet requirements of search input, skip
                 return null;
               }
+              // green only when the address is known good: an IPv4 address,
+              // or a hostname the backend has resolved; amber otherwise
+              // (does not resolve, or not checked yet)
+              const dnsEntry = String(location?.dns || "").trim();
+              const dnsCheck = this.state?.dnsStatus?.[locationKey];
+              const dnsChecked = dnsCheck && dnsCheck.dns === dnsEntry;
+              const dnsOk = ipv4Regex.test(dnsEntry) || (dnsChecked && dnsCheck.ok);
               const locationEnabledClassName =
                 styles["dot"] +
                 " " +
-                styles[`${isLocationEnabled ? "bg-green" : ""}`];
+                styles[
+                  `${isLocationEnabled ? (dnsOk ? "bg-green" : "bg-amber") : ""}`
+                ];
+              const locationStatusTitle = !isLocationEnabled
+                ? "Disabled"
+                : ipv4Regex.test(dnsEntry)
+                ? `Enabled - ${dnsEntry}`
+                : dnsOk
+                ? `Enabled - ${dnsEntry} resolves to ${dnsCheck.address}`
+                : !dnsEntry
+                ? "No dns entry - hamon cannot connect"
+                : dnsChecked
+                ? `${dnsEntry} ${dnsCheck.error} - hamon cannot connect`
+                : `${dnsEntry} not checked yet - save to check`;
 
               return (
                 <React.Fragment key={locationKey}>
                   <tr className={styles["location-wrapper"]}>
                     <td style={{ textAlign: "center" }}>
-                      <span className={locationEnabledClassName}>
+                      <span
+                        className={locationEnabledClassName}
+                        title={locationStatusTitle}
+                      >
                         {/* {(
                           <HiSignal
                             color="white"

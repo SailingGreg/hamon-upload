@@ -11,6 +11,11 @@
   background-color: #228B22;
 }
 
+/* enabled, but the dns entry is not known to resolve - hamon cannot connect */
+.bg-amber {
+  background-color: #FFB000;
+}
+
 .location-wrapper {
 margin-bottom: 8px;
 }
