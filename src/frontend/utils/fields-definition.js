@@ -34,6 +34,15 @@ const fieldsDefinition = {
     label: 'Physical addr:',
     type: 'text',
   },
+  // absent means knx: choosing the default removes the key rather than writing
+  // it, because hamon restarts a site's worker whenever one of its keys changes
+  'stack': {
+    label: 'KNX stack:',
+    type: 'select',
+    values: ['knx', 'knxultimate'],
+    default: 'knx',
+    omitDefault: true,
+  },
   'logging': {
     label: 'Logging:',
     type: 'select',

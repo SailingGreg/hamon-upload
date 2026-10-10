@@ -8,7 +8,8 @@
  * the hamon directory). Reports:
  *   issues  (x) - almost certainly wrong: bad YAML / duplicate keys, duplicate
  *                 location names, identical dns:port+phyAddr (tunnel conflict),
- *                 enabled site with empty dns/config, missing config xml.
+ *                 enabled site with empty dns/config, missing config xml,
+ *                 unknown stack (must be knx or knxultimate if present).
  *   review  (!) - worth a look: same config xml used twice, disabled site with a
  *                 missing config.
  *   notes   (-) - informational: shared dns:port endpoint with distinct phyAddr
@@ -71,6 +72,9 @@ for (const k of keys) {
     for (const f of ['dns', 'config']) {
       if (loc[f] === undefined || loc[f] === '') issues.push(`${label(k)}: ENABLED but '${f}' is empty`)
     }
+  }
+  if (loc.stack !== undefined && !['knx', 'knxultimate'].includes(loc.stack)) {
+    issues.push(`${label(k)}: unknown stack '${loc.stack}' (knx or knxultimate)`)
   }
   if (loc.config) {
     const exists = fs.existsSync(path.join(CONFIG_DIR, loc.config))

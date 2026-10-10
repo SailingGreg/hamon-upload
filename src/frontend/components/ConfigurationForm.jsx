@@ -523,7 +523,7 @@ class ConfigurationForm extends React.Component {
                               <select
                                 id={fieldId}
                                 style={{ minWidth: 220 }}
-                                value={fieldValue}
+                                value={fieldValue ?? fieldDefinitionValue.default}
                                 readOnly={isReadOnly}
                                 onChange={(e) => {
                                   this.setState((prevState) => {
@@ -531,9 +531,17 @@ class ConfigurationForm extends React.Component {
                                       {},
                                       prevState.configFile
                                     );
-                                    newConfigFile.locations[locationKey][
-                                      fieldDefinitionKey
-                                    ] = e?.target?.value;
+                                    const value = e?.target?.value;
+                                    if (fieldDefinitionValue.omitDefault &&
+                                        value === fieldDefinitionValue.default) {
+                                      delete newConfigFile.locations[locationKey][
+                                        fieldDefinitionKey
+                                      ];
+                                    } else {
+                                      newConfigFile.locations[locationKey][
+                                        fieldDefinitionKey
+                                      ] = value;
+                                    }
                                     return { config: newConfigFile };
                                   });
                                 }}

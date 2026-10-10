@@ -292,6 +292,13 @@ app.get('/load-configuration-file', async (req, res) => {
          tmp.phyAddr = currentLocation['phyAddr']
          tmp.logging = currentLocation['logging']
          tmp.config = currentLocation['config']
+         // keep any other keys (stack, later the secure settings) - a save
+         // writes back exactly what was loaded, so a key dropped here is lost
+         for (const key of Object.keys(currentLocation)) {
+           if (!Object.prototype.hasOwnProperty.call(tmp, key)) {
+             tmp[key] = currentLocation[key]
+           }
+         }
 
          newConfig['locations'][locationKey] = tmp
      }
