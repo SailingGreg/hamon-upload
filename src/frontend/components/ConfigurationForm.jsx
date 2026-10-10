@@ -53,6 +53,18 @@ class ConfigurationForm extends React.Component {
       .catch(() => {});
   }
 
+  // green only when the address is known good: an IPv4 address, or a
+  // hostname the backend has resolved; amber otherwise (does not resolve,
+  // or not checked yet). Used by the dots and the count line
+  isDnsOk(locationKey, location) {
+    const dnsEntry = String(location?.dns || "").trim();
+    const dnsCheck = this.state?.dnsStatus?.[locationKey];
+    return (
+      ipv4Regex.test(dnsEntry) ||
+      !!(dnsCheck && dnsCheck.dns === dnsEntry && dnsCheck.ok)
+    );
+  }
+
   componentDidMount() {
     // reading configuration
     fetch(LOAD_CONFIGURATION_ENDPOINT)
@@ -127,6 +139,14 @@ class ConfigurationForm extends React.Component {
     });
 
     const fieldsDefinitionArray = Object.entries(fieldsDefinition);
+
+    // one count per dot colour, so the three always add up to the total
+    const dotCounts = { green: 0, amber: 0, grey: 0 };
+    for (const [key, loc] of locations) {
+      if (!loc.enabled) dotCounts.grey++;
+      else if (this.isDnsOk(key, loc)) dotCounts.green++;
+      else dotCounts.amber++;
+    }
 
     const onSubmit = (e) => {
       e.preventDefault();
@@ -339,6 +359,10 @@ class ConfigurationForm extends React.Component {
             </button>
           </span>
         </div>
+        <div className={styles["site-counts"]}>
+          {locations.length} sites · {dotCounts.green} green ·{" "}
+          {dotCounts.amber} amber · {dotCounts.grey} grey
+        </div>
         <table style={{ flex: 1 }}>
           <tbody>
             <tr className={styles["location-wrapper"]}>
@@ -397,13 +421,10 @@ class ConfigurationForm extends React.Component {
                 // this record dosent meet requirements of search input, skip
                 return null;
               }
-              // green only when the address is known good: an IPv4 address,
-              // or a hostname the backend has resolved; amber otherwise
-              // (does not resolve, or not checked yet)
               const dnsEntry = String(location?.dns || "").trim();
               const dnsCheck = this.state?.dnsStatus?.[locationKey];
               const dnsChecked = dnsCheck && dnsCheck.dns === dnsEntry;
-              const dnsOk = ipv4Regex.test(dnsEntry) || (dnsChecked && dnsCheck.ok);
+              const dnsOk = this.isDnsOk(locationKey, location);
               const locationEnabledClassName =
                 styles["dot"] +
                 " " +

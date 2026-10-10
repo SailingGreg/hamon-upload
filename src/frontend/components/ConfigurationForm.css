@@ -41,6 +41,12 @@
   background-color: #FFB000;
 }
 
+.site-counts {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #555;
+}
+
 .dns-note {
   margin-left: 8px;
   color: #B36B00;
