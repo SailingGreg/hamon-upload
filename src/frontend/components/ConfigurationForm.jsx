@@ -449,6 +449,11 @@ class ConfigurationForm extends React.Component {
                       <span className={styles["configuration-location-title"]}>
                         {location?.name}
                       </span>
+                      {isLocationEnabled && dnsChecked && !dnsCheck.ok && (
+                        <span className={styles["dns-note"]}>
+                          {dnsEntry ? "Doesn't resolve" : "No address"}
+                        </span>
+                      )}
                     </td>
                     <td style={{ textAlign: "center" }}>
                       <button
