@@ -41,11 +41,13 @@
   background-color: #FFB000;
 }
 
+/* same look as the column headings (inherited size, bold, page colour) */
 .site-counts {
   margin: 4px 0 12px 0;
-  font-size: 18px;
+  padding: 0 0.5rem;
+  font-size: inherit;
   font-weight: bold;
-  color: #333;
+  color: inherit;
 }
 
 .dns-note {
