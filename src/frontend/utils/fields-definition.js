@@ -34,14 +34,15 @@ const fieldsDefinition = {
     label: 'Physical addr:',
     type: 'text',
   },
-  // absent means knx: choosing the default removes the key rather than writing
-  // it, because hamon restarts a site's worker whenever one of its keys changes
+  // absent means knx. Filled in when a site is edited, so stack: reaches
+  // hamon.yml site by site as sites are updated - not all at once, because
+  // hamon restarts a site's worker whenever one of its keys changes
   'stack': {
     label: 'KNX stack:',
     type: 'select',
     values: ['knx', 'knxultimate'],
     default: 'knx',
-    omitDefault: true,
+    fillOnEdit: true,
   },
   'logging': {
     label: 'Logging:',

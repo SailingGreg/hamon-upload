@@ -17,6 +17,7 @@ const port = process.env.PORT || 8080;
 const fs = require('fs');
 const path = require('path');
 const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
+const { maskSecrets, extractSecrets } = require('./src/backend/utils/secretStore');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
@@ -37,6 +38,9 @@ const LOCATION_CONFIGURATION_FILES_LOCATION = __dirname + '/uploads/'
 const LOCATION_CONFIGURATION_FILES_DESTINATION = '/config/'
 // SETUP THIS ONLY IF WE ARE READING CONFIG FROM OTHER PLACE, FOR EXAMPLE WE WANT USER TO NOT OVERRIDE BASIC CONFIGURATION AND SAVE IT SOMEWHERE ELSE
 const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
+// per-location passwords (ETS project password, later KNX Secure), never in
+// hamon.yml - see src/backend/utils/secretStore.js
+const SECRETS_FILE = CONFIGURATION_FILE_LOCATION + '/.hamon-secrets.json'
 // const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
 const SECURITY_COOKIE_NAME = 'grafana_session'
 //--- !!!! END OF CONFIGURATION !!!! ---//
@@ -175,9 +179,14 @@ app.post('/upload-configuration-file', async (req, res) => {
   try {
     const configFile = enforceNewLocationNames(req?.body?.configFile,
       `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
+    // after the name check: secrets are stored under the final name
+    extractSecrets(configFile, SECRETS_FILE,
+      `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
     configurationFile = yaml.dump(configFile)
   } catch (err) {
     console.error(err)
+    // don't save hamon.yml without its passwords stored
+    return res.json({ success: false, msg: `Not saved: ${err.message}` });
   }
   if (!configurationFile) {
     return res.json({ success: false, msg: "File was not found/Incorrect file" });
@@ -302,7 +311,7 @@ app.get('/load-configuration-file', async (req, res) => {
 
          newConfig['locations'][locationKey] = tmp
      }
-     configFile = newConfig
+     configFile = maskSecrets(newConfig, SECRETS_FILE)
   } catch (err) {
     return res.json({ error: 'Configuration file not found' })
   }

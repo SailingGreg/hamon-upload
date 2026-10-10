@@ -9,7 +9,8 @@
  *   issues  (x) - almost certainly wrong: bad YAML / duplicate keys, duplicate
  *                 location names, identical dns:port+phyAddr (tunnel conflict),
  *                 enabled site with empty dns/config, missing config xml,
- *                 unknown stack (must be knx or knxultimate if present).
+ *                 unknown stack (must be knx or knxultimate if present),
+ *                 a password in plain text (configPass belongs in .hamon-secrets.json).
  *   review  (!) - worth a look: same config xml used twice, disabled site with a
  *                 missing config.
  *   notes   (-) - informational: shared dns:port endpoint with distinct phyAddr
@@ -72,6 +73,9 @@ for (const k of keys) {
     for (const f of ['dns', 'config']) {
       if (loc[f] === undefined || loc[f] === '') issues.push(`${label(k)}: ENABLED but '${f}' is empty`)
     }
+  }
+  if (loc.configPass !== undefined) {
+    issues.push(`${label(k)}: configPass in plain text - re-save in hamon-upload to move it to .hamon-secrets.json`)
   }
   if (loc.stack !== undefined && !['knx', 'knxultimate'].includes(loc.stack)) {
     issues.push(`${label(k)}: unknown stack '${loc.stack}' (knx or knxultimate)`)

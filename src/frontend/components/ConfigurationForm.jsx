@@ -423,6 +423,17 @@ class ConfigurationForm extends React.Component {
                               {},
                               this?.state?.configFile.locations[locationKey]
                             );
+                            // after the backup, so Cancel takes it out again:
+                            // an edited site gets the missing keys that have a
+                            // default (stack: knx), so they reach hamon.yml
+                            // site by site as sites are updated
+                            const liveLocation =
+                              this?.state?.configFile.locations[locationKey];
+                            for (const [key, def] of fieldsDefinitionArray) {
+                              if (def.fillOnEdit && liveLocation[key] === undefined) {
+                                liveLocation[key] = def.default;
+                              }
+                            }
                             this.setState((prevState) => ({
                               currentlyEdited:
                                 prevState?.currentlyEdited === locationKey
@@ -531,17 +542,9 @@ class ConfigurationForm extends React.Component {
                                       {},
                                       prevState.configFile
                                     );
-                                    const value = e?.target?.value;
-                                    if (fieldDefinitionValue.omitDefault &&
-                                        value === fieldDefinitionValue.default) {
-                                      delete newConfigFile.locations[locationKey][
-                                        fieldDefinitionKey
-                                      ];
-                                    } else {
-                                      newConfigFile.locations[locationKey][
-                                        fieldDefinitionKey
-                                      ] = value;
-                                    }
+                                    newConfigFile.locations[locationKey][
+                                      fieldDefinitionKey
+                                    ] = e?.target?.value;
                                     return { config: newConfigFile };
                                   });
                                 }}
@@ -559,12 +562,20 @@ class ConfigurationForm extends React.Component {
                                 id={fieldId}
                                 style={{ minWidth: 220 }}
                                 type={
-                                  fieldDefinition.type === "password"
+                                  fieldDefinitionType === "password"
                                     ? "password"
                                     : "text"
                                 }
                                 readOnly={isReadOnly}
-                                value={fieldValue}
+                                value={fieldValue ?? ""}
+                                // a stored password arrives as a placeholder:
+                                // select it so typing replaces it, and
+                                // clearing the field removes the password
+                                onFocus={
+                                  fieldDefinitionType === "password"
+                                    ? (e) => e.target.select()
+                                    : undefined
+                                }
                                 onChange={(e) => {
                                   this.setState((prevState) => {
                                     let newConfigFile = Object.assign(
