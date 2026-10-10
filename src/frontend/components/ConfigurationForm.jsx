@@ -129,13 +129,11 @@ class ConfigurationForm extends React.Component {
         return 0;
       }
 
-      if (!a[1].enabled && b[1].enabled) {
-        return sortStatusDir === "ASC" ? 1 : -1;
-      } else if (a[1].enabled && !b[1].enabled) {
-        return sortStatusDir === "ASC" ? -1 : 1;
-      } else {
-        return 0;
-      }
+      // same order as the dot colours: green, amber, grey (ASC)
+      const rank = ([key, loc]) =>
+        !loc.enabled ? 2 : this.isDnsOk(key, loc) ? 0 : 1;
+      const result = rank(a) - rank(b);
+      return sortStatusDir === "ASC" ? result : -result;
     });
 
     const fieldsDefinitionArray = Object.entries(fieldsDefinition);
