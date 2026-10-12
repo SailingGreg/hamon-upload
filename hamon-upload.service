@@ -22,7 +22,7 @@ Environment=GRAFANA_AUTH_PROTO=http
 Type=idle
 
 # working directory is /home/greg/hamon
-ExecStart=/usr/bin/node /home/greg/hamon-upload/backend.js
+ExecStart=/opt/node24/bin/node /home/greg/hamon-upload/backend.js
 StandardOutput=append:/home/greg/hamon-upload/backend.log
 StandardError=append:/home/greg/hamon-upload/backend.err
 
