@@ -94,7 +94,13 @@ Overridable via `GRAFANA_AUTH_HOST` / `GRAFANA_AUTH_PORT` env vars.
 
 ---
 
-## 2. 🟠 Runs as root and unzips user-supplied archives (zip-slip risk)
+## 2. ✅ Runs as root and unzips user-supplied archives (zip-slip risk) — FIXED 2026-10-12
+
+**Fixed:** the service runs as `greg` since 2026-10-10, and since 2026-10-12 the ETS parser reads
+`project.xml` and `0.xml` straight from the archive with zip.js. Nothing is extracted to disk, so
+entry paths are never used as file paths, and zip.js rejects archives with `../` entries ("Unsafe
+filename"). Original finding below.
+
 
 **Where:** `hamon-upload.service` (runs as root) + `src/backend/utils/etsProjectParser.js`.
 
@@ -115,7 +121,11 @@ tally was always 0. **Fixed:** `backend.js` now counts `groupAddresses[key].dpt`
 
 ---
 
-## 4. 🟡 Race condition in the ETS parser
+## 4. ✅ Race condition in the ETS parser — FIXED 2026-10-12
+
+**Fixed:** project.xml is parsed before 0.xml (sequential), and the group addresses are added to
+the project information object. Original finding below.
+
 
 **Where:** `etsProjectParser.js` — `await Promise.all([parseProjectInformation(), parseProject()])`.
 
@@ -140,3 +150,22 @@ The timestamped `hamon.yml.<epoch-ms>` / `config/*.<ts>` backups this app create
 every save (`saveFile`/`moveFile`, `Date.now()`) are cleaned up by
 `../hamon/archive-hamonyml.sh` (weekly cron). The per-site `logging: info/debug`
 selector here is the same log-level lever discussed for the hamon process log volume.
+
+---
+
+## 6. ✅ ETS6 password-protected projects could not be read — FIXED 2026-10-12
+
+**Was:** unzipper (held at 0.10.x after an unrecorded past problem with newer versions) decrypts
+only ZipCrypto, used by ETS4/5 protected projects. ETS6 protects the inner `P-xxxx.zip` with AES-256,
+and its zip password is base64(PBKDF2-HMAC-SHA256(password as UTF-16LE, salt
+`21.project.ets.knx.org`, 65536 iterations, 32 bytes)), so uploads failed with "Passed password is
+incorrect".
+
+**Now:** `@zip.js/zip.js` 2.23.0 (no dependencies; ZipCrypto + AES) replaces unzipper. AES inner zips
+use the derived password, falling back to the password as typed; ZipCrypto uses it as typed. Same
+library and derivation as xknxproject (Python) and ioBroker.openknx (JavaScript). KNXUltimate's
+Node-RED plugin avoids the problem by importing an ETS CSV export instead of `.knxproj`.
+
+Tested on staging against the old parser: identical output for unencrypted, ZipCrypto and two real
+ETS6 projects; the same BAD_PASSWORD / MISSING_PASSWORD errors; AES now works. Still to confirm with a
+real password-protected ETS6 export (the AES test file was built to the same recipe).
