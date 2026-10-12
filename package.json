@@ -28,7 +28,7 @@
     "react-icons": "^4.11.0",
     "sax": "^1.2.4",
     "style-loader": "^3.3.3",
-    "unzipper": "^0.10.11",
+    "unzipper": "0.10.14",
     "webpack": "^5.89.0"
   },
   "devDependencies": {
@@ -37,6 +37,6 @@
     "webpack-cli": "^5.1.4"
   },
   "engines": {
-    "node": ">=16.14.0"
+    "node": ">=24"
   }
 }
