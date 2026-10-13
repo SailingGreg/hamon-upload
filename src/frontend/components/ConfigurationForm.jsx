@@ -551,6 +551,23 @@ class ConfigurationForm extends React.Component {
                           const fieldValue = location[fieldDefinitionKey];
                           const fieldId = `${locationKey}-${fieldDefinitionKey}`;
                           const isReadOnly = !!fieldDefinitionValue?.readOnly;
+                          // a field that only applies with another field's value
+                          // (KNX Secure needs the knxultimate stack): greyed out
+                          // otherwise; an absent value counts as its default
+                          const unmetRequirement = Object.entries(
+                            fieldDefinitionValue.requires || {}
+                          ).find(
+                            ([key, wanted]) =>
+                              (location[key] ?? fieldsDefinition[key]?.default) !==
+                              wanted
+                          );
+                          const isDisabled = !!unmetRequirement;
+                          const disabledStyle = isDisabled
+                            ? { opacity: 0.45, cursor: "not-allowed" }
+                            : {};
+                          const disabledTitle = unmetRequirement
+                            ? `Needs ${fieldsDefinition[unmetRequirement[0]]?.label?.replace(/:$/, "") || unmetRequirement[0]} ${unmetRequirement[1]}`
+                            : undefined;
                           const fieldDefinitionType = fieldDefinitionValue.type;
                           const fieldDefinitionLabel =
                             fieldDefinitionValue.label;
@@ -560,13 +577,15 @@ class ConfigurationForm extends React.Component {
                             fieldComponent = (
                               <select
                                 id={fieldId}
-                                style={{ minWidth: 150 }}
+                                style={{ minWidth: 150, ...disabledStyle }}
                                 value={
                                   typeof fieldValue == "boolean"
                                     ? fieldValue
                                     : fieldValue === "true"
                                 }
                                 readOnly={isReadOnly}
+                                disabled={isDisabled}
+                                title={disabledTitle}
                                 onChange={(e) => {
                                   this.setState((prevState) => {
                                     let newConfigFile = Object.assign(
@@ -621,7 +640,9 @@ class ConfigurationForm extends React.Component {
                             fieldComponent = (
                               <input
                                 id={fieldId}
-                                style={{ minWidth: 220 }}
+                                style={{ minWidth: 220, ...disabledStyle }}
+                                disabled={isDisabled}
+                                title={disabledTitle}
                                 type={
                                   fieldDefinitionType === "password"
                                     ? "password"
@@ -666,6 +687,16 @@ class ConfigurationForm extends React.Component {
                                 {fieldDefinitionLabel || fieldDefinitionKey}
                               </label>
                               {fieldComponent}
+                              {isDisabled &&
+                                (fieldValue === true || fieldValue === "true" ? (
+                                  <span className={styles["dns-note"]}>
+                                    {disabledTitle} - set KNX stack to {unmetRequirement[1]} or this to false
+                                  </span>
+                                ) : (
+                                  <span style={{ marginLeft: 8, color: "#888", fontSize: "0.85em" }}>
+                                    {disabledTitle}
+                                  </span>
+                                ))}
                               {fieldDefinitionKey === "dns" &&
                                 dnsChecked &&
                                 !dnsCheck.ok && (

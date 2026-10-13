@@ -244,6 +244,13 @@ app.post('/upload-configuration-file', async (req, res) => {
     if (secure.error) return res.json({ success: false, msg: `Not saved: ${secure.error}` })
     pending = secure.pending
     secureNotes = secure.notes
+    // after the secure defaults (which set the stack): secure needs knxultimate
+    for (const k in (configFile?.locations || {})) {
+      const loc = configFile.locations[k]
+      if (loc?.secure === true && loc.stack !== 'knxultimate') {
+        return res.json({ success: false, msg: `Not saved: ${loc.name}: KNX Secure needs the knxultimate stack - set KNX stack to knxultimate, or KNX Secure to false` })
+      }
+    }
     extractSecrets(configFile, SECRETS_FILE, CONFIGURATION_FILE_LOCATION, secure.byName)
     configurationFile = yaml.dump(configFile)
   } catch (err) {

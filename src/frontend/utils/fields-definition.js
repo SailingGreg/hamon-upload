@@ -51,12 +51,14 @@ const fieldsDefinition = {
   'secure': {
     label: 'KNX Secure:',
     type: 'boolean',
+    requires: { stack: 'knxultimate' },
   },
   // the gateway tunnel hamon uses, e.g. 1.1.9; uploading a secure project sets
   // it to the gateway's last tunnel, which the integrator keeps free for hamon
   'tunnelIA': {
     label: 'Tunnel IA:',
     type: 'text',
+    requires: { stack: 'knxultimate' },
   },
   'logging': {
     label: 'Logging:',
