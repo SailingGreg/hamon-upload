@@ -21,6 +21,10 @@ export default function uploadFile(file, endpoint, silent = false, password = ''
       if (data.msg && !silent) {
         window.alert(data.msg)
       }
+      // shown even on a silent upload (e.g. what a KNX Secure project held)
+      if (data.notice) {
+        window.alert(data.notice)
+      }
       return true
     });
 }

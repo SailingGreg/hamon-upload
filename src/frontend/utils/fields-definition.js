@@ -44,6 +44,21 @@ const fieldsDefinition = {
     default: 'knx',
     fillOnEdit: true,
   },
+  // KNX Secure tunnelling (needs stack knxultimate). The secure values come
+  // from the site's ETS project when it's uploaded and live in the secret
+  // store, never in hamon.yml. Absent means plain, as for every site today
+  'secure': {
+    label: 'Secure:',
+    type: 'select',
+    values: ['off', 'tunnel'],
+    default: 'off',
+  },
+  // the gateway tunnel reserved for hamon, e.g. 1.1.250 (one of those listed
+  // when the secure project was uploaded)
+  'tunnelIA': {
+    label: 'Tunnel IA:',
+    type: 'text',
+  },
   'logging': {
     label: 'Logging:',
     type: 'select',

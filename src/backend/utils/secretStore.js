@@ -6,7 +6,7 @@
  * the directory it is in (~/hamon: hamon.yml itself is root's once this app has
  * written it), so the nightly backup, which runs as that user, can include it:
  *
- *   { "<location name>": { "configPass": "..." } }
+ *   { "<location name>": { "configPass": "...", "secure": { ... } } }
  *
  * Keyed by location name: names of existing sites never change.
  *
@@ -15,6 +15,11 @@
  *                      ''                  - remove it;
  *                      anything else       - store it.
  * Secret fields are always removed from the location before hamon.yml is written.
+ *
+ * `secure` holds a site's KNX Secure values, taken from its ETS project at
+ * upload (see etsSecure.js). It never goes to the browser. A site's project
+ * password is not kept once its secure values are stored, and the entry is
+ * dropped when the site moves to a different configuration file.
  */
 
 const fs = require('fs')
@@ -34,9 +39,10 @@ function readSecrets(file) {
   }
 }
 
-function writeSecrets(file, secrets, ownerOf) {
+// JSON written atomically with mode 600, owned like `ownerOf` when we can
+function writePrivateJson(file, data, ownerOf) {
   const tmp = path.join(path.dirname(file), `.${path.basename(file)}.tmp`)
-  fs.writeFileSync(tmp, JSON.stringify(secrets, null, 2) + '\n', { mode: 0o600 })
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', { mode: 0o600 })
   fs.chmodSync(tmp, 0o600)   // mode only applies when the file is created
   try {
     const { uid, gid } = fs.statSync(ownerOf)
@@ -46,6 +52,7 @@ function writeSecrets(file, secrets, ownerOf) {
   }
   fs.renameSync(tmp, file)
 }
+const writeSecrets = writePrivateJson
 
 // load: replace stored secrets with STORED. A plaintext secret still in
 // hamon.yml (from before the store) is passed on, and moves to the store on
@@ -63,8 +70,9 @@ function maskSecrets(configFile, file) {
 }
 
 // save: move secret fields out of the locations into the store, and drop
-// entries for locations that no longer exist
-function extractSecrets(configFile, file, ownerOf) {
+// entries for locations that no longer exist. secureByName: new KNX Secure
+// entries from just-uploaded projects, by location name
+function extractSecrets(configFile, file, ownerOf, secureByName = {}) {
   const secrets = readSecrets(file)
   const before = JSON.stringify(secrets)
   const names = new Set()
@@ -73,6 +81,14 @@ function extractSecrets(configFile, file, ownerOf) {
     if (!loc) continue
     const name = loc.name
     if (name) names.add(name)
+    if (name && secureByName[name]) {
+      // the project password isn't kept for a secure project
+      secrets[name] = { ...secrets[name], secure: secureByName[name] }
+      delete secrets[name].configPass
+      delete loc.configPass
+    } else if (name && secrets[name]?.secure && secrets[name].secure.configFile !== loc.config) {
+      delete secrets[name].secure
+    }
     for (const k of SECRET_KEYS) {
       const value = loc[k]
       delete loc[k]
@@ -91,4 +107,4 @@ function extractSecrets(configFile, file, ownerOf) {
   return configFile
 }
 
-module.exports = { maskSecrets, extractSecrets, SECRET_KEYS, STORED }
+module.exports = { maskSecrets, extractSecrets, writePrivateJson, SECRET_KEYS, STORED }

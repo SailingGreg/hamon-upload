@@ -6,6 +6,7 @@ const sax = require('sax')
 const { stringToBool } = require('./stringToBool.js');
 const { formatGroupAddress } = require('./formatGa.js');
 const { formatDatapointType } = require('./formatDatapointType.js');
+const { extractSecure } = require('./etsSecure.js');
 
 // no web workers in node; decryption and inflation run inline
 zip.configure({ useWebWorkers: false })
@@ -89,12 +90,28 @@ async function readProjectFiles(etsProjectFilePath, password) {
   }
 }
 
+// Named top-level (unencrypted) entries of the archive, e.g. the manufacturer
+// application files: { name: Buffer }, missing names left out
+async function readArchiveEntries(etsProjectFilePath, names) {
+  const reader = new zip.ZipReader(new zip.BlobReader(await fs.openAsBlob(etsProjectFilePath)))
+  try {
+    const out = {}
+    for (const e of await reader.getEntries()) {
+      if (!e.directory && names.includes(e.filename)) out[e.filename] = await readEntry(e)
+    }
+    return out
+  } finally {
+    await reader.close()
+  }
+}
+
 // Feeds a buffer through a sax parser; parse errors end the parse without
 // failing the upload, as before
-function parseXml(buffer, onOpenTag) {
+function parseXml(buffer, onOpenTag, onCloseTag) {
   return new Promise(resolve => {
     const xmlParser = sax.createStream(true)
     xmlParser.on('opentag', onOpenTag)
+    if (onCloseTag) xmlParser.on('closetag', onCloseTag)
     xmlParser.on('end', () => resolve())
     xmlParser.on('error', err => resolve(err))
     Readable.from([buffer]).pipe(xmlParser)
@@ -151,10 +168,15 @@ const etsProjectParser = async function (etsProjectFilePath, password, workdir) 
           description: element.attributes['Description'],
           dpt: formatDatapointType(element.attributes['DatapointType']),
           unfiltered: element.attributes['Unfiltered'],
-          central: stringToBool(element.attributes['Central'])
+          central: stringToBool(element.attributes['Central']),
+          // only the flag: the key itself goes to the secret store
+          ...(element.attributes['Key'] ? { dataSecure: true } : {})
         })
       }
     })
+    // KNX Secure material (null for a plain project); see etsSecure.js
+    project.secure = await extractSecure(files.project,
+      names => readArchiveEntries(etsProjectFilePath, names), parseXml)
   }
 
   return project

@@ -17,7 +17,8 @@ const port = process.env.PORT || 8080;
 const fs = require('fs');
 const path = require('path');
 const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
-const { maskSecrets, extractSecrets } = require('./src/backend/utils/secretStore');
+const { maskSecrets, extractSecrets, writePrivateJson } = require('./src/backend/utils/secretStore');
+const { describeSecure, secureEntryFor } = require('./src/backend/utils/etsSecure');
 const { dnsStatus } = require('./src/backend/utils/dnsStatus');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -174,16 +175,48 @@ function enforceNewLocationNames(configFile, existingPath) {
   return configFile
 }
 
+// KNX Secure values from an uploaded project wait here (mode 600) until the
+// configuration is saved; the project file itself is deleted at upload
+function pendingSecureFile(projectFileName) {
+  return LOCATION_CONFIGURATION_FILES_LOCATION +
+    projectFileName.substring(0, projectFileName.lastIndexOf('.')) + '.secure.json'
+}
+
+// the secure entries to store, by location name, for the projects in this
+// save. Returns { byName, pending } or { error }
+function pendingSecure(configFile, toSave) {
+  const byName = {}
+  const pending = []
+  for (const f of toSave) {
+    if (path.extname(f) !== '.knxproj' || !fs.existsSync(pendingSecureFile(f))) continue
+    pending.push(pendingSecureFile(f))
+    const secure = JSON.parse(fs.readFileSync(pendingSecureFile(f), 'utf8'))
+    for (const k in (configFile?.locations || {})) {
+      const loc = configFile.locations[k]
+      if (!loc?.name || loc.config !== f) continue
+      const { entry, error } = secureEntryFor(secure, loc, f)
+      if (error) return { error }
+      byName[loc.name] = entry
+    }
+  }
+  return { byName, pending }
+}
+
 app.post('/upload-configuration-file', async (req, res) => {
   if (!(await isAuthenticated(req))) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
   let configurationFile
+  const toSave = req?.body?.configurationsToSave || []
+  let pending = []
   try {
     const configFile = enforceNewLocationNames(req?.body?.configFile,
       `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
     // after the name check: secrets are stored under the final name
-    extractSecrets(configFile, SECRETS_FILE, CONFIGURATION_FILE_LOCATION)
+    const secure = pendingSecure(configFile, toSave)
+    if (secure.error) return res.json({ success: false, msg: `Not saved: ${secure.error}` })
+    pending = secure.pending
+    extractSecrets(configFile, SECRETS_FILE, CONFIGURATION_FILE_LOCATION, secure.byName)
     configurationFile = yaml.dump(configFile)
   } catch (err) {
     console.error(err)
@@ -194,25 +227,25 @@ app.post('/upload-configuration-file', async (req, res) => {
     return res.json({ success: false, msg: "File was not found/Incorrect file" });
   }
 
-  try {
-    if (req?.body?.configurationsToSave && req?.body?.configurationsToSave?.length > 0) {
-      req?.body?.configurationsToSave.forEach((configurationToSaveFileName) => {
-        try {
-          moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION + LOCATION_CONFIGURATION_FILES_DESTINATION, configurationToSaveFileName) 
-          const knxprojectParsedJsonName = configurationToSaveFileName.substr(0, configurationToSaveFileName.lastIndexOf('.')) + '.json'
-          if (path.extname(configurationToSaveFileName) === '.knxproj' && fs.existsSync(LOCATION_CONFIGURATION_FILES_LOCATION + knxprojectParsedJsonName)) {
-            moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, CONFIGURATION_FILE_LOCATION + LOCATION_CONFIGURATION_FILES_DESTINATION, knxprojectParsedJsonName) 
-          }
-        } catch (err) {
-          console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file`)
-        }
-      })
+  const destination = CONFIGURATION_FILE_LOCATION + LOCATION_CONFIGURATION_FILES_DESTINATION
+  for (const configurationToSaveFileName of toSave) {
+    try {
+      // a secure project was deleted at upload: only its parsed .json is moved
+      if (fs.existsSync(LOCATION_CONFIGURATION_FILES_LOCATION + configurationToSaveFileName)) {
+        moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, destination, configurationToSaveFileName)
+      }
+      const knxprojectParsedJsonName = configurationToSaveFileName.substr(0, configurationToSaveFileName.lastIndexOf('.')) + '.json'
+      if (path.extname(configurationToSaveFileName) === '.knxproj' && fs.existsSync(LOCATION_CONFIGURATION_FILES_LOCATION + knxprojectParsedJsonName)) {
+        moveFile(LOCATION_CONFIGURATION_FILES_LOCATION, destination, knxprojectParsedJsonName)
+      }
+    } catch (err) {
+      console.error(`Moving location config files failed on ${configurationToSaveFileName}, skipping move this file`)
     }
-  } catch (err) {
-    console.error('Moving location config files failed')
   }
 
   saveFile(CONFIGURATION_FILE_LOCATION, CONFIGURATION_FILE_NAME, configurationFile)
+  // stored (or not wanted by any site): the waiting secure values go
+  for (const p of pending) fs.rmSync(p, { force: true })
   return res.json({ success: true, msg: "File saved successfully" });
 });
 
@@ -233,8 +266,17 @@ app.post('/upload-location-configuration-file', async (req, res) => {
     // console.log('knx project file', LOCATION_CONFIGURATION_FILES_LOCATION)
     // TODO: add logic to parse knx project file
 
-    await etsProjectParser(`${LOCATION_CONFIGURATION_FILES_LOCATION}/${file.name}`, configFilePassword)
+    const uploaded = `${LOCATION_CONFIGURATION_FILES_LOCATION}/${file.name}`
+    await etsProjectParser(uploaded, configFilePassword)
       .then((project) => {
+        // KNX Secure: keep only the checked values, never the project itself
+        let notice
+        if (project.secure) {
+          writePrivateJson(pendingSecureFile(file.name), project.secure, CONFIGURATION_FILE_LOCATION)
+          fs.rmSync(uploaded, { force: true })
+          notice = describeSecure(project.secure)
+          console.log(`${file.name}: KNX Secure project, secure values held for save, project file deleted`)
+        }
         addr = 0;
         dpts = 0;
         ga = 0;
@@ -258,9 +300,13 @@ app.post('/upload-location-configuration-file', async (req, res) => {
           console.log('Address data is saved to ' + outputFile + ' file');
         });
         console.log("%s has %d entries, %d with values and %d DPTs", outputFilePath, addr, ga, dpts);
-        return res.json({ success: true, msg: "Location configuration file saved successfully" });
+        return res.json({ success: true, msg: "Location configuration file saved successfully", notice });
       }).catch(err => {
-        if (err.message == 'BAD_PASSWORD') {
+        // a project that couldn't be read isn't kept either
+        fs.rmSync(uploaded, { force: true })
+        if (err.message.startsWith('SECURE_VERIFY_FAILED')) {
+          return res.json({ success: false, msg: `KNX Secure values in the project don't match their checks (${err.message.split(': ')[1]}) - not used` });
+        } else if (err.message == 'BAD_PASSWORD') {
           return res.json({ success: false, msg: "Passed password is incorrect" });
         } else if (err.message == 'MISSING_PASSWORD') {
           return res.json({ success: false, msg: "This is secured knxproject file, password is required" });

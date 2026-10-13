@@ -10,6 +10,8 @@
  *                 location names, identical dns:port+phyAddr (tunnel conflict),
  *                 enabled site with empty dns/config, missing config xml,
  *                 unknown stack (must be knx or knxultimate if present),
+ *                 secure other than off/tunnel, secure tunnel without knxultimate,
+ *                 a tunnelIA that isn't an individual address,
  *                 a password in plain text (configPass belongs in .hamon-secrets.json).
  *   review  (!) - worth a look: same config xml used twice, disabled site with a
  *                 missing config.
@@ -80,11 +82,23 @@ for (const k of keys) {
   if (loc.stack !== undefined && !['knx', 'knxultimate'].includes(loc.stack)) {
     issues.push(`${label(k)}: unknown stack '${loc.stack}' (knx or knxultimate)`)
   }
+  if (loc.secure !== undefined && !['off', 'tunnel'].includes(loc.secure)) {
+    issues.push(`${label(k)}: unknown secure '${loc.secure}' (off or tunnel)`)
+  }
+  if (loc.secure === 'tunnel' && loc.stack !== 'knxultimate') {
+    issues.push(`${label(k)}: secure tunnel needs stack knxultimate`)
+  }
+  if (loc.tunnelIA !== undefined && loc.tunnelIA !== '' && !/^\d{1,2}\.\d{1,2}\.\d{1,3}$/.test(String(loc.tunnelIA))) {
+    issues.push(`${label(k)}: tunnelIA '${loc.tunnelIA}' is not an individual address (e.g. 1.1.250)`)
+  }
   if (loc.config) {
-    const exists = fs.existsSync(path.join(CONFIG_DIR, loc.config))
+    // a project (.knxproj) site loads the parsed .json; the project isn't kept
+    const loaded = path.extname(loc.config) === '.knxproj'
+      ? loc.config.substring(0, loc.config.lastIndexOf('.')) + '.json' : loc.config
+    const exists = fs.existsSync(path.join(CONFIG_DIR, loaded))
     if (!exists) {
       (loc.enabled ? issues : review).push(
-        `${label(k)}: config file missing -> config/${loc.config}${loc.enabled ? ' [ENABLED]' : ' [disabled]'}`)
+        `${label(k)}: config file missing -> config/${loaded}${loc.enabled ? ' [ENABLED]' : ' [disabled]'}`)
     }
   }
 }
