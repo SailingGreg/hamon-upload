@@ -118,6 +118,9 @@ function parseXml(buffer, onOpenTag, onCloseTag) {
   })
 }
 
+// attribute value for the export XML
+const xmlAttr = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
 // The workdir argument is kept for callers but no longer used
 const etsProjectParser = async function (etsProjectFilePath, password, workdir) {
   const files = await readProjectFiles(etsProjectFilePath, password)
@@ -157,9 +160,21 @@ const etsProjectParser = async function (etsProjectFilePath, password, workdir) 
     }
   })
 
-  // group addresses from 0.xml, after project.xml so the two can't race
+  // group addresses from 0.xml, after project.xml so the two can't race. The
+  // same pass writes them out as an ETS group-address export (gaExportXml):
+  // the .xml every site's config is, which hamon's parsexml.js loads
+  const lines = ['<?xml version="1.0" encoding="utf-8" standalone="yes"?>',
+    '<GroupAddress-Export xmlns="http://knx.org/xml/ga-export/01">']
+  let depth = 1
   if (files.project) {
     await parseXml(files.project, element => {
+      const a = element.attributes
+      if (element.name === 'GroupRange') {
+        lines.push(`${'  '.repeat(depth++)}<GroupRange Name="${xmlAttr(a.Name || '')}" RangeStart="${a.RangeStart}" RangeEnd="${a.RangeEnd}">`)
+      } else if (element.name === 'GroupAddress') {
+        lines.push(`${'  '.repeat(depth)}<GroupAddress Name="${xmlAttr(a.Name || '')}" Address="${formatGroupAddress(parseInt(a.Address))}"` +
+          (a.DatapointType ? ` DPTs="${xmlAttr(a.DatapointType)}"` : '') + ' />')
+      }
       if (element.name === 'GroupAddress') {
         project.groupAddresses.push({
           id: element.attributes['Id'],
@@ -173,7 +188,11 @@ const etsProjectParser = async function (etsProjectFilePath, password, workdir) 
           ...(element.attributes['Key'] ? { dataSecure: true } : {})
         })
       }
+    }, name => {
+      if (name === 'GroupRange') lines.push(`${'  '.repeat(--depth)}</GroupRange>`)
     })
+    lines.push('</GroupAddress-Export>')
+    project.gaExportXml = lines.join('\r\n') + '\r\n'
     // KNX Secure material (null for a plain project); see etsSecure.js
     project.secure = await extractSecure(files.project,
       names => readArchiveEntries(etsProjectFilePath, names), parseXml)
