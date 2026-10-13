@@ -687,16 +687,6 @@ class ConfigurationForm extends React.Component {
                                 {fieldDefinitionLabel || fieldDefinitionKey}
                               </label>
                               {fieldComponent}
-                              {isDisabled &&
-                                (fieldValue === true || fieldValue === "true" ? (
-                                  <span className={styles["dns-note"]}>
-                                    {disabledTitle} - set KNX stack to {unmetRequirement[1]} or this to false
-                                  </span>
-                                ) : (
-                                  <span style={{ marginLeft: 8, color: "#888", fontSize: "0.85em" }}>
-                                    {disabledTitle}
-                                  </span>
-                                ))}
                               {fieldDefinitionKey === "dns" &&
                                 dnsChecked &&
                                 !dnsCheck.ok && (
