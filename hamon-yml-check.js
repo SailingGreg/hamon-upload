@@ -10,7 +10,7 @@
  *                 location names, identical dns:port+phyAddr (tunnel conflict),
  *                 enabled site with empty dns/config, missing config xml,
  *                 unknown stack (must be knx or knxultimate if present),
- *                 secure other than off/tunnel, secure tunnel without knxultimate,
+ *                 secure that isn't true/false, secure without stack knxultimate,
  *                 a tunnelIA that isn't an individual address,
  *                 a password in plain text (configPass belongs in .hamon-secrets.json).
  *   review  (!) - worth a look: same config xml used twice, disabled site with a
@@ -82,11 +82,11 @@ for (const k of keys) {
   if (loc.stack !== undefined && !['knx', 'knxultimate'].includes(loc.stack)) {
     issues.push(`${label(k)}: unknown stack '${loc.stack}' (knx or knxultimate)`)
   }
-  if (loc.secure !== undefined && !['off', 'tunnel'].includes(loc.secure)) {
-    issues.push(`${label(k)}: unknown secure '${loc.secure}' (off or tunnel)`)
+  if (loc.secure !== undefined && typeof loc.secure !== 'boolean') {
+    issues.push(`${label(k)}: secure '${loc.secure}' must be true or false`)
   }
-  if (loc.secure === 'tunnel' && loc.stack !== 'knxultimate') {
-    issues.push(`${label(k)}: secure tunnel needs stack knxultimate`)
+  if (loc.secure === true && loc.stack !== 'knxultimate') {
+    issues.push(`${label(k)}: secure: true needs stack knxultimate`)
   }
   if (loc.tunnelIA !== undefined && loc.tunnelIA !== '' && !/^\d{1,2}\.\d{1,2}\.\d{1,3}$/.test(String(loc.tunnelIA))) {
     issues.push(`${label(k)}: tunnelIA '${loc.tunnelIA}' is not an individual address (e.g. 1.1.250)`)

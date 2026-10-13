@@ -198,10 +198,13 @@ function projectsToXml(configFile, toSave) {
 }
 
 // the secure entries to store, by location name, for the projects in this
-// save. Returns { byName, pending } or { error }
+// save, and the site's secure settings filled in where not set: stack
+// knxultimate, secure true, tunnelIA the gateway's last tunnel. Returns
+// { byName, pending, notes } or { error }
 function pendingSecure(configFile, toSave) {
   const byName = {}
   const pending = []
+  const notes = []
   for (const f of toSave) {
     if (path.extname(f) !== '.knxproj' || !fs.existsSync(pendingSecureFile(f))) continue
     pending.push(pendingSecureFile(f))
@@ -209,12 +212,18 @@ function pendingSecure(configFile, toSave) {
     for (const k in (configFile?.locations || {})) {
       const loc = configFile.locations[k]
       if (!loc?.name || loc.config !== projectXmlName(f)) continue
-      const { entry, error } = secureEntryFor(secure, loc, loc.config)
+      const { entry, error, tunnelIA, defaulted } = secureEntryFor(secure, loc, loc.config)
       if (error) return { error }
       byName[loc.name] = entry
+      if (!entry.gateway) continue   // Data Secure keys only, no secure gateway
+      const set = []
+      if (loc.stack !== 'knxultimate') { loc.stack = 'knxultimate'; set.push('stack knxultimate') }
+      if (loc.secure === undefined) { loc.secure = true; set.push('KNX Secure true') }
+      if (defaulted) { loc.tunnelIA = tunnelIA; set.push(`tunnel ${tunnelIA} (the gateway's last - keep it free for hamon)`) }
+      notes.push(`${loc.name}: KNX Secure values stored for gateway ${entry.gateway}` + (set.length ? `; set ${set.join(', ')}` : ''))
     }
   }
-  return { byName, pending }
+  return { byName, pending, notes }
 }
 
 app.post('/upload-configuration-file', async (req, res) => {
@@ -225,6 +234,7 @@ app.post('/upload-configuration-file', async (req, res) => {
   const toSave = req?.body?.configurationsToSave || []
   let toMove = toSave
   let pending = []
+  let secureNotes = []
   try {
     const configFile = enforceNewLocationNames(req?.body?.configFile,
       `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
@@ -233,6 +243,7 @@ app.post('/upload-configuration-file', async (req, res) => {
     const secure = pendingSecure(configFile, toSave)
     if (secure.error) return res.json({ success: false, msg: `Not saved: ${secure.error}` })
     pending = secure.pending
+    secureNotes = secure.notes
     extractSecrets(configFile, SECRETS_FILE, CONFIGURATION_FILE_LOCATION, secure.byName)
     configurationFile = yaml.dump(configFile)
   } catch (err) {
@@ -258,7 +269,7 @@ app.post('/upload-configuration-file', async (req, res) => {
   saveFile(CONFIGURATION_FILE_LOCATION, CONFIGURATION_FILE_NAME, configurationFile)
   // stored (or not wanted by any site): the waiting secure values go
   for (const p of pending) fs.rmSync(p, { force: true })
-  return res.json({ success: true, msg: "File saved successfully" });
+  return res.json({ success: true, msg: ["File saved successfully", ...secureNotes].join('\n') });
 });
 
 app.post('/upload-location-configuration-file', async (req, res) => {

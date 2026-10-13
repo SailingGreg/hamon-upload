@@ -134,35 +134,70 @@ async function extractSecure(projectXml, readArchiveEntries, parseXml) {
   return result
 }
 
+// individual addresses in numeric order (x.y.2 before x.y.10)
+const iaOrder = ia => ia.split('.').reduce((n, part) => n * 256 + Number(part), 0)
+
+// hamon's rule: it uses the gateway's LAST tunnel, so the integrator keeps
+// that one free (ETS and visualisations take the first free tunnel)
+function lastTunnel(gateway) {
+  return Object.keys(gateway.tunnels).sort((a, b) => iaOrder(a) - iaOrder(b)).pop()
+}
+
+const tunnelList = g => `${Object.keys(g.tunnels).sort((a, b) => iaOrder(a) - iaOrder(b)).join(', ')} (gateway ${g.ia})`
+
 // what was found, without any secret, for the person uploading
 function describeSecure(secure) {
   const parts = secure.gateways.map(g => {
     const t = Object.keys(g.tunnels)
-    return `gateway ${g.ia}${g.lanIp ? ` (${g.lanIp})` : ''} with ${t.length} tunnel${t.length === 1 ? '' : 's'}${t.length ? `: ${t.join(', ')}` : ''}`
+    return `gateway ${g.ia}${g.lanIp ? ` (${g.lanIp})` : ''} with ${t.length} tunnel${t.length === 1 ? '' : 's'}${t.length ? `: ${tunnelList(g).replace(/ \(gateway.*$/, '')}` : ''}`
   })
   const keys = Object.keys(secure.groupKeys).length
   if (keys) parts.push(`${keys} Data Secure group address${keys === 1 ? '' : 'es'}`)
-  return `KNX Secure project: ${parts.join('; ')}. ` +
-    'The secure values were checked and will be stored when you save; the project file itself is not kept. ' +
-    'Set "Secure" to tunnel and "Tunnel IA" to the tunnel reserved for hamon.'
-}
-
-// the stored entry for one site: the gateway its tunnelIA belongs to (or the
-// only one), its tunnels and the project's group keys. Returns { entry } or
-// { error }.
-function secureEntryFor(secure, loc, configFile) {
-  let gateway
-  if (loc.tunnelIA) {
-    gateway = secure.gateways.find(g => g.tunnels[loc.tunnelIA])
-    if (!gateway) return { error: `${loc.name}: tunnel ${loc.tunnelIA} isn't a tunnel of a secure gateway in ${configFile}` }
-  } else if (secure.gateways.length === 1) {
-    gateway = secure.gateways[0]
+  let next = ''
+  if (secure.gateways.length === 1 && lastTunnel(secure.gateways[0])) {
+    next = `When you save, the site is set to KNX Secure on the knxultimate stack, using the gateway's ` +
+      `last tunnel ${lastTunnel(secure.gateways[0])}: keep that tunnel free for hamon (set "Tunnel IA" to use another).`
   } else if (secure.gateways.length > 1) {
-    return { error: `${loc.name}: ${configFile} has ${secure.gateways.length} secure gateways - set "Tunnel IA" to pick one` }
+    next = 'Set "Tunnel IA" to the tunnel reserved for hamon before saving.'
   }
-  const entry = { configFile, stored: new Date().toISOString(), groupKeys: secure.groupKeys }
-  if (gateway) Object.assign(entry, { gateway: gateway.ia, deviceAuthCode: gateway.deviceAuthCode, tunnels: gateway.tunnels })
-  return { entry }
+  return `KNX Secure project: ${parts.join('; ')}. ` +
+    'The secure values were checked and will be stored when you save; the project file itself is not kept. ' + next
 }
 
-module.exports = { extractSecure, describeSecure, secureEntryFor, knxHash }
+// the gateway and tunnel a site uses: its tunnelIA if set, else the only
+// secure gateway's last tunnel. { gateway, tunnelIA, defaulted } or { error };
+// {} if the project has no secure gateway (Data Secure keys only)
+function pickTunnel(secure, loc, configFile) {
+  if (loc.tunnelIA) {
+    const gateway = secure.gateways.find(g => g.tunnels[loc.tunnelIA])
+    if (!gateway) {
+      return { error: `${loc.name}: tunnel ${loc.tunnelIA} isn't a tunnel of a secure gateway in ${configFile} - ` +
+        `use one of ${secure.gateways.map(tunnelList).join('; ')}` }
+    }
+    return { gateway, tunnelIA: loc.tunnelIA, defaulted: false }
+  }
+  if (secure.gateways.length === 1) {
+    const tunnelIA = lastTunnel(secure.gateways[0])
+    if (!tunnelIA) return { error: `${loc.name}: gateway ${secure.gateways[0].ia} in ${configFile} has no secure tunnels` }
+    return { gateway: secure.gateways[0], tunnelIA, defaulted: true }
+  }
+  if (secure.gateways.length > 1) {
+    return { error: `${loc.name}: ${configFile} has ${secure.gateways.length} secure gateways - set "Tunnel IA" to one of ` +
+      secure.gateways.map(tunnelList).join('; ') }
+  }
+  return {}
+}
+
+// the stored entry for one site: its gateway's code and tunnels and the
+// project's group keys. { entry, tunnelIA, defaulted } or { error }
+function secureEntryFor(secure, loc, configFile) {
+  const pick = pickTunnel(secure, loc, configFile)
+  if (pick.error) return pick
+  const entry = { configFile, stored: new Date().toISOString(), groupKeys: secure.groupKeys }
+  if (pick.gateway) {
+    Object.assign(entry, { gateway: pick.gateway.ia, deviceAuthCode: pick.gateway.deviceAuthCode, tunnels: pick.gateway.tunnels })
+  }
+  return { entry, tunnelIA: pick.tunnelIA, defaulted: pick.defaulted }
+}
+
+module.exports = { extractSecure, describeSecure, secureEntryFor, lastTunnel, knxHash }
