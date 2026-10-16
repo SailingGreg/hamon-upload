@@ -47,7 +47,8 @@
   background-color: #3B82C4;
 }
 
-/* hamon couldn't connect and is waiting out its restart back-off */
+/* down: a site that connected recently and has dropped, waiting out its
+   restart back-off (one that is not online is blocked, amber, instead) */
 .bg-red {
   background-color: #C0392B;
 }
