@@ -56,7 +56,8 @@
   margin: -8px 0 12px 0;
   padding: 0 0.5rem;
   font-size: 13px;
-  color: #666;
+  color: inherit; /* the page's own text colour, dimmed: it may be light or dark */
+  opacity: 0.7;
 }
 
 .hamon-banner {
