@@ -51,6 +51,7 @@ class ConfigurationForm extends React.Component {
       sortNameDir: null,
       dnsStatus: {},
       siteState: null,
+      rechecking: {}, // site name -> "checking" | "done", for the Re-check button
     };
   }
 
@@ -67,9 +68,19 @@ class ConfigurationForm extends React.Component {
       .catch(() => {});
   }
 
-  // Re-check button: ha-mon tries a blocked site again now (via its kpipe);
-  // the dot shows the outcome a few seconds later
+  // Re-check button: ha-mon tries a blocked site again now (via its kpipe).
+  // The button says "Checking..." until the result is in (the dns lookup and
+  // gateway check take up to ~5s), then "Still blocked" for a few seconds -
+  // or goes, with the dot, if the site is no longer blocked
   recheckSite(name) {
+    const mark = (value) =>
+      this.setState((prev) => {
+        const rechecking = { ...prev.rechecking };
+        if (value) rechecking[name] = value;
+        else delete rechecking[name];
+        return { rechecking };
+      });
+    mark("checking");
     fetch(RECHECK_SITE_ENDPOINT, {
       body: JSON.stringify({ name }),
       method: "post",
@@ -78,13 +89,21 @@ class ConfigurationForm extends React.Component {
       .then((response) => response.json())
       .then((data) => {
         if (data.error || !data.success) {
+          mark(null);
           window.alert(data.error || data.msg);
           return;
         }
-        setTimeout(() => this.loadSiteState(), 3000);
-        setTimeout(() => this.loadSiteState(), 10000);
+        setTimeout(() => this.loadSiteState(), 4000);
+        setTimeout(() => {
+          this.loadSiteState();
+          mark("done");
+          setTimeout(() => mark(null), 8000);
+        }, 10000);
       })
-      .catch(() => window.alert("Re-check failed"));
+      .catch(() => {
+        mark(null);
+        window.alert("Re-check failed");
+      });
   }
 
   componentWillUnmount() {
@@ -640,14 +659,19 @@ class ConfigurationForm extends React.Component {
                       >
                         Update
                       </button>
-                      {status.recheck && (
+                      {(status.recheck || this.state.rechecking[location.name] === "checking") && (
                         <button
                           type="button"
                           className={styles["location-action-button"]}
                           title="Ask hamon to try this site again now"
+                          disabled={!!this.state.rechecking[location.name]}
                           onClick={() => this.recheckSite(location.name)}
                         >
-                          Re-check
+                          {this.state.rechecking[location.name] === "checking"
+                            ? "Checking…"
+                            : this.state.rechecking[location.name] === "done"
+                            ? "Still blocked"
+                            : "Re-check"}
                         </button>
                       )}
                     </td>
