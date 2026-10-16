@@ -7,7 +7,6 @@ const defaultLocationConfig = {
   port: 3671,
   device: "generic",
   phyAddr: "15.15.15",
-  stack: "knx",
   logging: "info",
   config: "",
 };

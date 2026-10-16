@@ -1,5 +1,10 @@
 export const CONFIG_FILE_PASSWORD_KEY = 'configPass'
 
+// the stack a site runs on, as hamon works it out: the site's own stack:,
+// else the top-level stack: in hamon.yml, else knx
+export const effectiveStack = (location, configFile) =>
+  location?.stack || configFile?.stack || 'knx'
+
 const fieldsDefinition = {
   'name': {
     label: 'Name:',
@@ -34,15 +39,14 @@ const fieldsDefinition = {
     label: 'Physical addr:',
     type: 'text',
   },
-  // absent means knx. Filled in when a site is edited, so stack: reaches
-  // hamon.yml site by site as sites are updated - not all at once, because
-  // hamon restarts a site's worker whenever one of its keys changes
+  // "default" (no stack: line) follows the top-level `stack:` in hamon.yml,
+  // else knx. Pick knx or knxultimate only to hold one site on a stack
   'stack': {
     label: 'KNX stack:',
     type: 'select',
-    values: ['knx', 'knxultimate'],
-    default: 'knx',
-    fillOnEdit: true,
+    values: ['', 'knx', 'knxultimate'],
+    labels: { '': 'default' },
+    default: '',
   },
   // KNX Secure tunnelling (needs stack knxultimate). The secure values come
   // from the site's ETS project when it's uploaded and live in the secret

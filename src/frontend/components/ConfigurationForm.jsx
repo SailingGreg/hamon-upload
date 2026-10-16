@@ -2,6 +2,7 @@ import React from "react";
 import styles from "./ConfigurationForm.css";
 import fieldsDefinition, {
   CONFIG_FILE_PASSWORD_KEY,
+  effectiveStack,
 } from "../utils/fields-definition";
 import uploadFile from "../utils/upload-file";
 import {
@@ -485,9 +486,8 @@ class ConfigurationForm extends React.Component {
                               this?.state?.configFile.locations[locationKey]
                             );
                             // after the backup, so Cancel takes it out again:
-                            // an edited site gets the missing keys that have a
-                            // default (stack: knx), so they reach hamon.yml
-                            // site by site as sites are updated
+                            // an edited site gets the missing keys marked
+                            // fillOnEdit (none at present)
                             const liveLocation =
                               this?.state?.configFile.locations[locationKey];
                             for (const [key, def] of fieldsDefinitionArray) {
@@ -553,12 +553,15 @@ class ConfigurationForm extends React.Component {
                           const isReadOnly = !!fieldDefinitionValue?.readOnly;
                           // a field that only applies with another field's value
                           // (KNX Secure needs the knxultimate stack): greyed out
-                          // otherwise; an absent value counts as its default
+                          // otherwise; an absent value counts as its default,
+                          // and the stack as the one the site runs on
                           const unmetRequirement = Object.entries(
                             fieldDefinitionValue.requires || {}
                           ).find(
                             ([key, wanted]) =>
-                              (location[key] ?? fieldsDefinition[key]?.default) !==
+                              (key === "stack"
+                                ? effectiveStack(location, this?.state?.configFile)
+                                : location[key] ?? fieldsDefinition[key]?.default) !==
                               wanted
                           );
                           const isDisabled = !!unmetRequirement;
@@ -631,7 +634,9 @@ class ConfigurationForm extends React.Component {
                               >
                                 {fieldDefinitionValue.values.map((value) => (
                                   <option key={value} value={value}>
-                                    {value}
+                                    {value === "" && fieldDefinitionKey === "stack"
+                                      ? `default (${effectiveStack({}, this?.state?.configFile)})`
+                                      : fieldDefinitionValue.labels?.[value] ?? value}
                                   </option>
                                 ))}
                               </select>

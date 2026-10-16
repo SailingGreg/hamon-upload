@@ -197,6 +197,12 @@ function projectsToXml(configFile, toSave) {
   })
 }
 
+// the stack a site runs on, as hamon works it out: the site's own stack:,
+// else the top-level stack: in hamon.yml, else knx
+function effectiveStack(loc, configFile) {
+  return loc?.stack || configFile?.stack || 'knx'
+}
+
 // the secure entries to store, by location name, for the projects in this
 // save, and the site's secure settings filled in where not set: stack
 // knxultimate, secure true, tunnelIA the gateway's last tunnel. Returns
@@ -217,7 +223,7 @@ function pendingSecure(configFile, toSave) {
       byName[loc.name] = entry
       if (!entry.gateway) continue   // Data Secure keys only, no secure gateway
       const set = []
-      if (loc.stack !== 'knxultimate') { loc.stack = 'knxultimate'; set.push('stack knxultimate') }
+      if (effectiveStack(loc, configFile) !== 'knxultimate') { loc.stack = 'knxultimate'; set.push('stack knxultimate') }
       if (loc.secure === undefined) { loc.secure = true; set.push('KNX Secure true') }
       if (defaulted) { loc.tunnelIA = tunnelIA; set.push(`tunnel ${tunnelIA} (the gateway's last - keep it free for hamon)`) }
       notes.push(`${loc.name}: KNX Secure values stored for gateway ${entry.gateway}` + (set.length ? `; set ${set.join(', ')}` : ''))
@@ -244,10 +250,13 @@ app.post('/upload-configuration-file', async (req, res) => {
     if (secure.error) return res.json({ success: false, msg: `Not saved: ${secure.error}` })
     pending = secure.pending
     secureNotes = secure.notes
-    // after the secure defaults (which set the stack): secure needs knxultimate
+    // after the secure defaults (which set the stack): secure needs knxultimate.
+    // "default" in the form leaves no stack: line, so the site follows the
+    // top-level stack: in hamon.yml
     for (const k in (configFile?.locations || {})) {
       const loc = configFile.locations[k]
-      if (loc?.secure === true && loc.stack !== 'knxultimate') {
+      if (loc && (loc.stack === '' || loc.stack == null)) delete loc.stack
+      if (loc?.secure === true && effectiveStack(loc, configFile) !== 'knxultimate') {
         return res.json({ success: false, msg: `Not saved: ${loc.name}: KNX Secure needs the knxultimate stack - set KNX stack to knxultimate, or KNX Secure to false` })
       }
     }
