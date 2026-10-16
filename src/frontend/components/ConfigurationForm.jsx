@@ -519,6 +519,7 @@ class ConfigurationForm extends React.Component {
                 style={{
                   padding: "0.5rem",
                   minWidth: 150,
+                  textAlign: "left",
                 }}
               >
                 actions
@@ -574,7 +575,9 @@ class ConfigurationForm extends React.Component {
                         {location?.name}
                       </span>
                     </td>
-                    <td style={{ textAlign: "center" }}>
+                    {/* left-aligned so Edit/Disable/Update line up whether or not a
+                        row has a Re-check button */}
+                    <td style={{ textAlign: "left", padding: "0 0.5rem" }}>
                       <button
                         type="button"
                         className={styles["location-action-button"]}
