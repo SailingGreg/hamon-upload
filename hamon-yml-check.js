@@ -13,7 +13,8 @@
  *                 the top-level stack:, the default for every location),
  *                 secure that isn't true/false, secure without stack knxultimate,
  *                 a tunnelIA that isn't an individual address,
- *                 a password in plain text (configPass belongs in .hamon-secrets.json).
+ *                 a password in plain text (configPass belongs in .hamon-secrets.json),
+ *                 a top-level threads: that isn't true/false.
  *   review  (!) - worth a look: same config xml used twice, disabled site with a
  *                 missing config.
  *   notes   (-) - informational: shared dns:port endpoint with distinct phyAddr
@@ -73,6 +74,11 @@ const groupBy = (fn) => {
 
 if (topStack !== undefined && !['knx', 'knxultimate'].includes(topStack)) {
   issues.push(`top-level: unknown stack '${topStack}' (knx or knxultimate)`)
+}
+// threads: false runs every site in hamon's main thread; absent or true is one
+// worker thread per site. Anything else would be read as true by hamon
+if (doc && doc.threads !== undefined && typeof doc.threads !== 'boolean') {
+  issues.push(`top-level: threads must be true or false, not '${doc.threads}'`)
 }
 
 // per-location field checks
