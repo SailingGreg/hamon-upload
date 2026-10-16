@@ -47,7 +47,7 @@
   background-color: #3B82C4;
 }
 
-/* down: a site that connected recently and has dropped, waiting out its
+/* off-line: a site that connected recently and has dropped, waiting out its
    restart back-off (one that is not online is blocked, amber, instead) */
 .bg-red {
   background-color: #C0392B;
