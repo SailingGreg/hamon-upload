@@ -20,6 +20,7 @@ const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
 const { maskSecrets, extractSecrets, writePrivateJson } = require('./src/backend/utils/secretStore');
 const { describeSecure, secureEntryFor } = require('./src/backend/utils/etsSecure');
 const { dnsStatus } = require('./src/backend/utils/dnsStatus');
+const { siteState } = require('./src/backend/utils/siteState');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
@@ -413,6 +414,16 @@ app.get('/dns-status', async (req, res) => {
     return res.json({ error: 'Configuration file not found' })
   }
   return res.json(await dnsStatus(configFile.locations))
+});
+
+// hamon's own view of each site (connected / starting / down / blocked /
+// disabled) for the status dots, from the state file ha-mon keeps beside
+// hamon.yml. Read-only; { available: false } if ha-mon hasn't written one
+app.get('/site-state', async (req, res) => {
+  if (!(await isAuthenticated(req))) {
+    return res.status(401).json({ error: 'You are not logged in' })
+  }
+  return res.json(siteState(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/tmp/site-state.json`))
 });
 
 // Behind nginx (TLS=0) this serves plain http, and LISTEN_HOST=127.0.0.1 keeps

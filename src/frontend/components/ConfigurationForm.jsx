@@ -10,6 +10,7 @@ import {
   UPLOAD_CONFIGURATION_ENDPOINT,
   UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
   DNS_STATUS_ENDPOINT,
+  SITE_STATE_ENDPOINT,
   defaultLocationConfig,
 } from "../utils/constants";
 import {
@@ -25,6 +26,15 @@ import UploadingFileSpinner from "./UploadingFileSpinner";
 const CONFIGURATION_FORM_ID = "configuration-edit-form";
 const fileNameRegex = /\s|\(|\)/g;
 const ipv4Regex = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
+const SITE_STATE_POLL_MS = 30 * 1000;
+
+// a site-state time as '16 Oct 13:47' in the browser's time zone
+const when = (iso) => {
+  const d = new Date(iso);
+  return isNaN(d)
+    ? "?"
+    : d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+};
 
 class ConfigurationForm extends React.Component {
   constructor(props) {
@@ -39,7 +49,25 @@ class ConfigurationForm extends React.Component {
       sortStatusDir: null,
       sortNameDir: null,
       dnsStatus: {},
+      siteState: null,
     };
+  }
+
+  // hamon's own state for each site (tmp/site-state.json via the backend):
+  // connected, starting, down, blocked or disabled. Polled, as it changes
+  // without anything happening on this page
+  loadSiteState() {
+    fetch(SITE_STATE_ENDPOINT)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data || data.error === "You are not logged in") return;
+        this.setState({ siteState: data });
+      })
+      .catch(() => {});
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.siteStatePoll);
   }
 
   // which enabled sites' dns entries resolve (amber dot when they don't);
@@ -54,16 +82,62 @@ class ConfigurationForm extends React.Component {
       .catch(() => {});
   }
 
-  // green only when the address is known good: an IPv4 address, or a
-  // hostname the backend has resolved; amber otherwise (does not resolve,
-  // or not checked yet). Used by the dots and the count line
-  isDnsOk(locationKey, location) {
+  // the dot for a site: { colour, tip, rank }. hamon's state when it has one
+  // for the saved entry; otherwise (no state file, a new or just-enabled
+  // site, an unsaved dns edit) the dns check, as before
+  siteStatus(locationKey, location) {
     const dnsEntry = String(location?.dns || "").trim();
     const dnsCheck = this.state?.dnsStatus?.[locationKey];
-    return (
-      ipv4Regex.test(dnsEntry) ||
-      !!(dnsCheck && dnsCheck.dns === dnsEntry && dnsCheck.ok)
-    );
+    const dnsChecked = dnsCheck && dnsCheck.dns === dnsEntry;
+    if (!location?.enabled) return { colour: "grey", tip: "Disabled", rank: 4 };
+    if (!dnsEntry)
+      return { colour: "amber", tip: "No dns entry - hamon cannot connect", rank: 3 };
+    if (dnsCheck && !dnsChecked)
+      return { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 3 };
+
+    const hamon = this.state?.siteState;
+    const st = hamon?.available ? hamon.sites?.[location.name] : null;
+    if (st && st.state !== "disabled") {
+      const stale = hamon.running ? "" : "ha-mon not running - last known: ";
+      const last = st.lastConnected
+        ? `; last connected ${when(st.lastConnected)}`
+        : "; no connection recorded";
+      switch (st.state) {
+        case "connected":
+          return { colour: "green", tip: `${stale}Connected since ${when(st.since)}`, rank: 0 };
+        case "starting":
+          return {
+            colour: "blue",
+            tip: `${stale}Connecting since ${when(st.since)}` +
+              (st.failures > 0 ? ` (attempt ${st.failures + 1})` : "") + last,
+            rank: 1,
+          };
+        case "down":
+          return {
+            colour: "red",
+            tip: `${stale}Down since ${when(st.since)}` +
+              (st.nextRetry ? ` - retry ${st.failures + 1} at ${when(st.nextRetry)}` : "") + last,
+            rank: 2,
+          };
+        case "blocked":
+          return {
+            colour: "amber",
+            tip: `${stale}Blocked: ${st.detail || st.reason} - not retried; ` +
+              "hamon re-checks it when this site is changed and saved",
+            rank: 3,
+          };
+      }
+    }
+
+    // green only when the address is known good: an IPv4 address, or a
+    // hostname the backend has resolved
+    if (ipv4Regex.test(dnsEntry))
+      return { colour: "green", tip: `Enabled - ${dnsEntry}`, rank: 0 };
+    if (dnsChecked && dnsCheck.ok)
+      return { colour: "green", tip: `Enabled - ${dnsEntry} resolves to ${dnsCheck.address}`, rank: 0 };
+    if (dnsChecked)
+      return { colour: "amber", tip: `${dnsEntry} ${dnsCheck.error} - hamon cannot connect`, rank: 3 };
+    return { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 3 };
   }
 
   componentDidMount() {
@@ -78,6 +152,8 @@ class ConfigurationForm extends React.Component {
 
         this.setState({ configFile: data });
         this.loadDnsStatus();
+        this.loadSiteState();
+        this.siteStatePoll = setInterval(() => this.loadSiteState(), SITE_STATE_POLL_MS);
         setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 100);
       });
   }
@@ -130,22 +206,20 @@ class ConfigurationForm extends React.Component {
         return 0;
       }
 
-      // same order as the dot colours: green, amber, grey (ASC)
-      const rank = ([key, loc]) =>
-        !loc.enabled ? 2 : this.isDnsOk(key, loc) ? 0 : 1;
+      // same order as the dot colours: green, blue, red, amber, grey (ASC)
+      const rank = ([key, loc]) => this.siteStatus(key, loc).rank;
       const result = rank(a) - rank(b);
       return sortStatusDir === "ASC" ? result : -result;
     });
 
     const fieldsDefinitionArray = Object.entries(fieldsDefinition);
 
-    // one count per dot colour, so the three always add up to the total
-    const dotCounts = { green: 0, amber: 0, grey: 0 };
+    // one count per dot colour, so they always add up to the total
+    const dotCounts = { green: 0, blue: 0, red: 0, amber: 0, grey: 0 };
     for (const [key, loc] of locations) {
-      if (!loc.enabled) dotCounts.grey++;
-      else if (this.isDnsOk(key, loc)) dotCounts.green++;
-      else dotCounts.amber++;
+      dotCounts[this.siteStatus(key, loc).colour]++;
     }
+    const hamonState = this.state?.siteState;
 
     const onSubmit = (e) => {
       e.preventDefault();
@@ -181,6 +255,9 @@ class ConfigurationForm extends React.Component {
             configurationsToSave: [],
           });
           this.loadDnsStatus();
+          // hamon picks the change up within seconds; show what it made of it
+          setTimeout(() => this.loadSiteState(), 5000);
+          setTimeout(() => this.loadSiteState(), 20000);
         });
     };
 
@@ -359,9 +436,24 @@ class ConfigurationForm extends React.Component {
           </span>
         </div>
         <div className={styles["site-counts"]}>
-          {locations.length} sites · {dotCounts.green} green ·{" "}
-          {dotCounts.amber} amber · {dotCounts.grey} grey
+          {locations.length} sites · {dotCounts.green} green · {dotCounts.blue} blue ·{" "}
+          {dotCounts.red} red · {dotCounts.amber} amber · {dotCounts.grey} grey
         </div>
+        <div className={styles["site-legend"]}>
+          green connected · blue connecting · red down, waiting to retry ·
+          amber can't connect (dns) · grey disabled
+        </div>
+        {hamonState?.available && !hamonState.running && (
+          <div className={styles["hamon-banner"]}>
+            ha-mon is not running - the dots show the last known state
+            {hamonState.updated ? ` (${when(hamonState.updated)})` : ""}
+          </div>
+        )}
+        {hamonState && !hamonState.available && (
+          <div className={styles["site-legend"]}>
+            No site state from hamon ({hamonState.error}) - the dots show the dns check only
+          </div>
+        )}
         <table style={{ flex: 1 }}>
           <tbody>
             <tr className={styles["location-wrapper"]}>
@@ -423,24 +515,12 @@ class ConfigurationForm extends React.Component {
               const dnsEntry = String(location?.dns || "").trim();
               const dnsCheck = this.state?.dnsStatus?.[locationKey];
               const dnsChecked = dnsCheck && dnsCheck.dns === dnsEntry;
-              const dnsOk = this.isDnsOk(locationKey, location);
+              const status = this.siteStatus(locationKey, location);
               const locationEnabledClassName =
                 styles["dot"] +
                 " " +
-                styles[
-                  `${isLocationEnabled ? (dnsOk ? "bg-green" : "bg-amber") : ""}`
-                ];
-              const locationStatusTitle = !isLocationEnabled
-                ? "Disabled"
-                : ipv4Regex.test(dnsEntry)
-                ? `Enabled - ${dnsEntry}`
-                : dnsOk
-                ? `Enabled - ${dnsEntry} resolves to ${dnsCheck.address}`
-                : !dnsEntry
-                ? "No dns entry - hamon cannot connect"
-                : dnsChecked
-                ? `${dnsEntry} ${dnsCheck.error} - hamon cannot connect`
-                : `${dnsEntry} not checked yet - save to check`;
+                (status.colour === "grey" ? "" : styles[`bg-${status.colour}`]);
+              const locationStatusTitle = status.tip;
 
               return (
                 <React.Fragment key={locationKey}>

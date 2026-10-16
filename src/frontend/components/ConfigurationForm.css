@@ -36,9 +36,36 @@
   background-color: #228B22;
 }
 
-/* enabled, but the dns entry is not known to resolve - hamon cannot connect */
+/* hamon has blocked the site (e.g. its dns doesn't resolve), or the dns entry
+   is not known to resolve - hamon cannot connect */
 .bg-amber {
   background-color: #FFB000;
+}
+
+/* hamon has started the site's worker and it is not connected yet */
+.bg-blue {
+  background-color: #3B82C4;
+}
+
+/* hamon couldn't connect and is waiting out its restart back-off */
+.bg-red {
+  background-color: #C0392B;
+}
+
+.site-legend {
+  margin: -8px 0 12px 0;
+  padding: 0 0.5rem;
+  font-size: 13px;
+  color: #666;
+}
+
+.hamon-banner {
+  margin: 0 0 12px 0;
+  padding: 6px 0.5rem;
+  border-radius: 4px;
+  background: #FDECEA;
+  color: #8B1A10;
+  font-weight: bold;
 }
 
 /* same look as the column headings (inherited size, bold, page colour) */
