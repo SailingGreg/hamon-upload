@@ -11,6 +11,7 @@ import {
   UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
   DNS_STATUS_ENDPOINT,
   SITE_STATE_ENDPOINT,
+  RECHECK_SITE_ENDPOINT,
   defaultLocationConfig,
 } from "../utils/constants";
 import {
@@ -64,6 +65,26 @@ class ConfigurationForm extends React.Component {
         this.setState({ siteState: data });
       })
       .catch(() => {});
+  }
+
+  // Re-check button: ha-mon tries a blocked site again now (via its kpipe);
+  // the dot shows the outcome a few seconds later
+  recheckSite(name) {
+    fetch(RECHECK_SITE_ENDPOINT, {
+      body: JSON.stringify({ name }),
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.error || !data.success) {
+          window.alert(data.error || data.msg);
+          return;
+        }
+        setTimeout(() => this.loadSiteState(), 3000);
+        setTimeout(() => this.loadSiteState(), 10000);
+      })
+      .catch(() => window.alert("Re-check failed"));
   }
 
   componentWillUnmount() {
@@ -123,8 +144,9 @@ class ConfigurationForm extends React.Component {
           return {
             colour: "amber",
             tip: `${stale}Blocked: ${st.detail || st.reason} - not retried; ` +
-              "hamon re-checks it when this site is changed and saved",
+              "Re-check, or change and save this site, to try again",
             rank: 3,
+            recheck: hamon.running,
           };
       }
     }
@@ -441,7 +463,7 @@ class ConfigurationForm extends React.Component {
         </div>
         <div className={styles["site-legend"]}>
           green connected · blue connecting · red down, waiting to retry ·
-          amber can't connect (dns) · grey disabled
+          amber blocked (no dns, or not online) · grey disabled
         </div>
         {hamonState?.available && !hamonState.running && (
           <div className={styles["hamon-banner"]}>
@@ -615,6 +637,16 @@ class ConfigurationForm extends React.Component {
                       >
                         Update
                       </button>
+                      {status.recheck && (
+                        <button
+                          type="button"
+                          className={styles["location-action-button"]}
+                          title="Ask hamon to try this site again now"
+                          onClick={() => this.recheckSite(location.name)}
+                        >
+                          Re-check
+                        </button>
+                      )}
                     </td>
                   </tr>
                   {isCurrentlyEdited && (

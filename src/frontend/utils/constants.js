@@ -18,6 +18,7 @@ const UPLOAD_LOCATION_CONFIGURATION_ENDPOINT =
 // relative so it goes through nginx's /upload/ proxy (needs no extra location)
 const DNS_STATUS_ENDPOINT = "dns-status";
 const SITE_STATE_ENDPOINT = "site-state";
+const RECHECK_SITE_ENDPOINT = "recheck-site";
 
 
 export {
@@ -26,5 +27,6 @@ export {
   UPLOAD_LOCATION_CONFIGURATION_ENDPOINT,
   DNS_STATUS_ENDPOINT,
   SITE_STATE_ENDPOINT,
+  RECHECK_SITE_ENDPOINT,
   defaultLocationConfig
 }

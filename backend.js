@@ -21,6 +21,7 @@ const { maskSecrets, extractSecrets, writePrivateJson } = require('./src/backend
 const { describeSecure, secureEntryFor } = require('./src/backend/utils/etsSecure');
 const { dnsStatus } = require('./src/backend/utils/dnsStatus');
 const { siteState } = require('./src/backend/utils/siteState');
+const { recheck } = require('./src/backend/utils/recheck');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
@@ -424,6 +425,22 @@ app.get('/site-state', async (req, res) => {
     return res.status(401).json({ error: 'You are not logged in' })
   }
   return res.json(siteState(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/tmp/site-state.json`))
+});
+
+// Re-check button on a blocked site: ha-mon re-checks it now (DNS, then
+// whether its gateway answers) by way of tmp/kpipe
+app.post('/recheck-site', async (req, res) => {
+  if (!(await isAuthenticated(req))) {
+    return res.status(401).json({ error: 'You are not logged in' })
+  }
+  const dir = READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION
+  let configFile
+  try {
+    configFile = yaml.load(fs.readFileSync(`${dir}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
+  } catch (err) {
+    return res.json({ success: false, msg: 'Configuration file not found' })
+  }
+  return res.json(recheck(`${dir}/tmp/kpipe`, req?.body?.name, configFile.locations))
 });
 
 // Behind nginx (TLS=0) this serves plain http, and LISTEN_HOST=127.0.0.1 keeps
