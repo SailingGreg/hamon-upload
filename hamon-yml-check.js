@@ -9,7 +9,8 @@
  *   issues  (x) - almost certainly wrong: bad YAML / duplicate keys, duplicate
  *                 location names, identical dns:port+phyAddr (tunnel conflict),
  *                 enabled site with empty dns/config, missing config xml,
- *                 unknown stack (must be knx or knxultimate if present),
+ *                 unknown stack (must be knx or knxultimate if present; also
+ *                 the top-level stack:, the default for every location),
  *                 secure that isn't true/false, secure without stack knxultimate,
  *                 a tunnelIA that isn't an individual address,
  *                 a password in plain text (configPass belongs in .hamon-secrets.json).
@@ -53,6 +54,9 @@ const notes = []
 if (strictErr) issues.push('YAML strict parse failed (duplicate key / syntax): ' + strictErr)
 
 const locations = (doc && doc.locations) || {}
+// the top-level stack: is the default for every location without its own
+const topStack = doc && doc.stack
+const effectiveStack = (loc) => loc.stack || topStack || 'knx'
 const keys = Object.keys(locations)
 const label = (k) => `${k}${locations[k] && locations[k].name ? '/' + locations[k].name : ''}`
 
@@ -65,6 +69,10 @@ const groupBy = (fn) => {
     ;(m[String(v)] = m[String(v)] || []).push(label(k))
   }
   return m
+}
+
+if (topStack !== undefined && !['knx', 'knxultimate'].includes(topStack)) {
+  issues.push(`top-level: unknown stack '${topStack}' (knx or knxultimate)`)
 }
 
 // per-location field checks
@@ -85,8 +93,8 @@ for (const k of keys) {
   if (loc.secure !== undefined && typeof loc.secure !== 'boolean') {
     issues.push(`${label(k)}: secure '${loc.secure}' must be true or false`)
   }
-  if (loc.secure === true && loc.stack !== 'knxultimate') {
-    issues.push(`${label(k)}: secure: true needs stack knxultimate`)
+  if (loc.secure === true && effectiveStack(loc) !== 'knxultimate') {
+    issues.push(`${label(k)}: secure: true needs stack knxultimate (runs on ${effectiveStack(loc)})`)
   }
   if (loc.tunnelIA !== undefined && loc.tunnelIA !== '' && !/^\d{1,2}\.\d{1,2}\.\d{1,3}$/.test(String(loc.tunnelIA))) {
     issues.push(`${label(k)}: tunnelIA '${loc.tunnelIA}' is not an individual address (e.g. 1.1.250)`)
