@@ -51,7 +51,7 @@ class ConfigurationForm extends React.Component {
       sortNameDir: null,
       dnsStatus: {},
       siteState: null,
-      rechecking: {}, // site name -> "checking" | "done", for the Re-check button
+      rechecking: {}, // site name -> "checking", while its Re-check is under way
     };
   }
 
@@ -70,8 +70,8 @@ class ConfigurationForm extends React.Component {
 
   // Re-check button: ha-mon tries a blocked site again now (via its kpipe).
   // The button says "Checking..." until the result is in (the dns lookup and
-  // gateway check take up to ~5s), then "Still blocked" for a few seconds -
-  // or goes, with the dot, if the site is no longer blocked
+  // gateway check take up to ~5s), then "Re-check" again - or goes, with the
+  // dot, if the site is no longer blocked
   recheckSite(name) {
     const mark = (value) =>
       this.setState((prev) => {
@@ -96,8 +96,7 @@ class ConfigurationForm extends React.Component {
         setTimeout(() => this.loadSiteState(), 4000);
         setTimeout(() => {
           this.loadSiteState();
-          mark("done");
-          setTimeout(() => mark(null), 8000);
+          mark(null);
         }, 10000);
       })
       .catch(() => {
@@ -669,8 +668,6 @@ class ConfigurationForm extends React.Component {
                         >
                           {this.state.rechecking[location.name] === "checking"
                             ? "Checking…"
-                            : this.state.rechecking[location.name] === "done"
-                            ? "Still blocked"
                             : "Re-check"}
                         </button>
                       )}
