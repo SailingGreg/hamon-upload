@@ -14,7 +14,9 @@
  *                 secure that isn't true/false, secure without stack knxultimate,
  *                 a tunnelIA that isn't an individual address,
  *                 a password in plain text (configPass belongs in .hamon-secrets.json),
- *                 a top-level threads: that isn't true/false.
+ *                 a top-level threads: that isn't true/false,
+ *                 a dedupe: (top-level or a location's) that isn't a number of
+ *                 seconds, 0 or more.
  *   review  (!) - worth a look: same config xml used twice, disabled site with a
  *                 missing config.
  *   notes   (-) - informational: shared dns:port endpoint with distinct phyAddr
@@ -80,11 +82,18 @@ if (topStack !== undefined && !['knx', 'knxultimate'].includes(topStack)) {
 if (doc && doc.threads !== undefined && typeof doc.threads !== 'boolean') {
   issues.push(`top-level: threads must be true or false, not '${doc.threads}'`)
 }
+// dedupe: seconds between stored repeats of a GA's value; 0 or absent is off.
+// hamon treats anything else as off, which is probably not what was meant
+const badDedupe = (v) => v !== undefined && v !== null && !(typeof v === 'number' && v >= 0)
+if (doc && badDedupe(doc.dedupe)) {
+  issues.push(`top-level: dedupe must be a number of seconds (0 = off), not '${doc.dedupe}'`)
+}
 
 // per-location field checks
 for (const k of keys) {
   const loc = locations[k] || {}
   if (loc.name === undefined || loc.name === '') issues.push(`${k}: missing/empty 'name'`)
+  if (badDedupe(loc.dedupe)) issues.push(`${label(k)}: dedupe must be a number of seconds (0 = off), not '${loc.dedupe}'`)
   if (loc.enabled === true) {
     for (const f of ['dns', 'config']) {
       if (loc[f] === undefined || loc[f] === '') issues.push(`${label(k)}: ENABLED but '${f}' is empty`)
