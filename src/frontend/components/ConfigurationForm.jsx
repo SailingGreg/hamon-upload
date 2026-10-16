@@ -462,8 +462,8 @@ class ConfigurationForm extends React.Component {
           {dotCounts.red} red · {dotCounts.amber} amber · {dotCounts.grey} grey
         </div>
         <div className={styles["site-legend"]}>
-          green connected · blue connecting · red down, waiting to retry ·
-          amber blocked (no dns, or not online) · grey disabled
+          green connected · blue connecting · red retrying · amber blocked · grey
+          disabled
         </div>
         {hamonState?.available && !hamonState.running && (
           <div className={styles["hamon-banner"]}>
