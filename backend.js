@@ -342,6 +342,8 @@ app.post('/upload-location-configuration-file', async (req, res) => {
         fs.rmSync(uploaded, { force: true })
         if (err.message.startsWith('SECURE_VERIFY_FAILED')) {
           return res.json({ success: false, msg: `KNX Secure values in the project don't match their checks (${err.message.split(': ')[1]}) - not used` });
+        } else if (err.message.startsWith('SECURE_NO_DEVICE_CODE')) {
+          return res.json({ success: false, msg: `KNX Secure gateway ${err.message.split(': ')[1]} has secure tunnels but no device authentication code in the project - add it in ETS and export again` });
         } else if (err.message == 'BAD_PASSWORD') {
           return res.json({ success: false, msg: "Passed password is incorrect" });
         } else if (err.message == 'MISSING_PASSWORD') {

@@ -33,6 +33,7 @@ function verified(value, hash, salt) {
 // are resolved. parseXml(buffer, onOpenTag, onCloseTag) is the parser's helper.
 async function collect(projectXml, parseXml) {
   const gateways = []
+  const noCode = []     // secure tunnels but no device authentication code
   const groupKeys = {}
   let area, line, device, inAdditional = false
 
@@ -63,13 +64,15 @@ async function collect(projectXml, parseXml) {
   }, name => {
     if (name === 'AdditionalAddresses') inAdditional = false
     if (name === 'DeviceInstance' && device) {
-      if (device.code && device.busInterfaces.length > 0) {
-        gateways.push({ ...device, ia: `${area}.${line}.${device.address}` })
+      if (device.busInterfaces.length > 0) {
+        const ia = `${area}.${line}.${device.address}`
+        if (device.code) gateways.push({ ...device, ia })
+        else noCode.push(device.name ? `${ia} (${device.name})` : ia)
       }
       device = undefined
     }
   })
-  return { gateways, groupKeys }
+  return { gateways, noCode, groupKeys }
 }
 
 // the manufacturer application file that defines a BusInterface RefId:
@@ -102,7 +105,10 @@ async function addressIndexes(refIds, readArchiveEntries, parseXml) {
  * Throws SECURE_VERIFY_FAILED if a code or password doesn't match its hash.
  */
 async function extractSecure(projectXml, readArchiveEntries, parseXml) {
-  const { gateways, groupKeys } = await collect(projectXml, parseXml)
+  const { gateways, noCode, groupKeys } = await collect(projectXml, parseXml)
+  // KNX Secure tunnelling always has a device authentication code: without it
+  // the gateway can't be authenticated, so the project is incomplete
+  if (noCode.length) throw new Error(`SECURE_NO_DEVICE_CODE: ${noCode.join(', ')}`)
   if (gateways.length === 0 && Object.keys(groupKeys).length === 0) return null
 
   const refIds = gateways.flatMap(g => g.busInterfaces.map(b => b.refId))
