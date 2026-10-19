@@ -1,6 +1,7 @@
 // What hamon itself knows about each site, from the tmp/site-state.json that
 // ha-mon (service.js) writes on every change: connected, starting, down (in
-// restart back-off), blocked (e.g. its dns doesn't resolve) or disabled.
+// restart back-off), misconfigured (its config can't work), blocked (e.g.
+// its dns doesn't resolve) or disabled.
 // Read-only here - hamon owns the file. Like /dns-status, kept out of
 // /load-configuration-file so none of it can be posted back into hamon.yml.
 const fs = require('fs')
