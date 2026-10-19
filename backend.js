@@ -417,7 +417,7 @@ app.get('/dns-status', async (req, res) => {
   return res.json(await dnsStatus(configFile.locations))
 });
 
-// hamon's own view of each site (connected / starting / down / blocked /
+// hamon's own view of each site (connected / starting / down / misconfigured / blocked /
 // disabled) for the status dots, from the state file ha-mon keeps beside
 // hamon.yml. Read-only; { available: false } if ha-mon hasn't written one
 app.get('/site-state', async (req, res) => {

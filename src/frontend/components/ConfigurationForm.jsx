@@ -56,7 +56,7 @@ class ConfigurationForm extends React.Component {
   }
 
   // hamon's own state for each site (tmp/site-state.json via the backend):
-  // connected, starting, down, blocked or disabled. Polled, as it changes
+  // connected, starting, down, misconfigured, blocked or disabled. Polled, as it changes
   // without anything happening on this page
   loadSiteState() {
     fetch(SITE_STATE_ENDPOINT)
@@ -128,11 +128,11 @@ class ConfigurationForm extends React.Component {
     const dnsEntry = String(location?.dns || "").trim();
     const dnsCheck = this.state?.dnsStatus?.[locationKey];
     const dnsChecked = dnsCheck && dnsCheck.dns === dnsEntry;
-    if (!location?.enabled) return { colour: "grey", tip: "Disabled", rank: 4 };
+    if (!location?.enabled) return { colour: "grey", tip: "Disabled", rank: 5 };
     if (!dnsEntry)
-      return { colour: "amber", tip: "No dns entry - hamon cannot connect", rank: 3 };
+      return { colour: "amber", tip: "No dns entry - hamon cannot connect", rank: 4 };
     if (dnsCheck && !dnsChecked)
-      return { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 3 };
+      return { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 4 };
 
     const hamon = this.state?.siteState;
     const st = hamon?.available ? hamon.sites?.[location.name] : null;
@@ -158,12 +158,19 @@ class ConfigurationForm extends React.Component {
               (st.nextRetry ? ` - retry ${st.failures + 1} at ${when(st.nextRetry)}` : "") + last,
             rank: 2,
           };
+        case "misconfigured":
+          return {
+            colour: "purple",
+            tip: `${stale}Misconfigured: ${st.detail || st.reason} - fix the configuration ` +
+              "and save this site to try again",
+            rank: 3,
+          };
         case "blocked":
           return {
             colour: "amber",
             tip: `${stale}Blocked: ${st.detail || st.reason} - not retried; ` +
               "Re-check, or change and save this site, to try again",
-            rank: 3,
+            rank: 4,
             recheck: hamon.running,
           };
       }
@@ -176,8 +183,8 @@ class ConfigurationForm extends React.Component {
     if (dnsChecked && dnsCheck.ok)
       return { colour: "green", tip: `Enabled - ${dnsEntry} resolves to ${dnsCheck.address}`, rank: 0 };
     if (dnsChecked)
-      return { colour: "amber", tip: `${dnsEntry} ${dnsCheck.error} - hamon cannot connect`, rank: 3 };
-    return { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 3 };
+      return { colour: "amber", tip: `${dnsEntry} ${dnsCheck.error} - hamon cannot connect`, rank: 4 };
+    return { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 4 };
   }
 
   componentDidMount() {
@@ -246,7 +253,7 @@ class ConfigurationForm extends React.Component {
         return 0;
       }
 
-      // same order as the dot colours: green, blue, red, amber, grey (ASC)
+      // same order as the dot colours: green, blue, red, purple, amber, grey (ASC)
       const rank = ([key, loc]) => this.siteStatus(key, loc).rank;
       const result = rank(a) - rank(b);
       return sortStatusDir === "ASC" ? result : -result;
@@ -255,7 +262,7 @@ class ConfigurationForm extends React.Component {
     const fieldsDefinitionArray = Object.entries(fieldsDefinition);
 
     // one count per dot colour, so they always add up to the total
-    const dotCounts = { green: 0, blue: 0, red: 0, amber: 0, grey: 0 };
+    const dotCounts = { green: 0, blue: 0, red: 0, purple: 0, amber: 0, grey: 0 };
     for (const [key, loc] of locations) {
       dotCounts[this.siteStatus(key, loc).colour]++;
     }
@@ -477,11 +484,12 @@ class ConfigurationForm extends React.Component {
         </div>
         <div className={styles["site-counts"]}>
           {locations.length} sites · {dotCounts.green} green · {dotCounts.blue} blue ·{" "}
-          {dotCounts.red} red · {dotCounts.amber} amber · {dotCounts.grey} grey
+          {dotCounts.red} red · {dotCounts.purple} purple · {dotCounts.amber} amber ·{" "}
+          {dotCounts.grey} grey
         </div>
         <div className={styles["site-legend"]}>
-          green connected · blue connecting · red off-line · amber blocked · grey
-          disabled
+          green connected · blue connecting · red off-line · purple misconfigured ·
+          amber blocked · grey disabled
         </div>
         {hamonState?.available && !hamonState.running && (
           <div className={styles["hamon-banner"]}>

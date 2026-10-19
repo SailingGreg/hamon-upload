@@ -42,6 +42,12 @@
   background-color: #FFB000;
 }
 
+/* hamon has stopped the site because its configuration can't work (KNX
+   Secure values missing, GA file missing or empty) - fix it and save */
+.bg-purple {
+  background-color: #8E44AD;
+}
+
 /* hamon has started the site's worker and it is not connected yet */
 .bg-blue {
   background-color: #3B82C4;
