@@ -1,9 +1,9 @@
 export const CONFIG_FILE_PASSWORD_KEY = 'configPass'
 
-// the stack a site runs on, as hamon works it out: the site's own stack:,
-// else the top-level stack: in hamon.yml, else knx
+// the stack a site runs on, as hamon works it out: the top-level stack: in
+// hamon.yml, else the site's own stack:, else knx
 export const effectiveStack = (location, configFile) =>
-  location?.stack || configFile?.stack || 'knx'
+  configFile?.stack || location?.stack || 'knx'
 
 const fieldsDefinition = {
   'name': {
@@ -40,7 +40,9 @@ const fieldsDefinition = {
     type: 'text',
   },
   // "default" (no stack: line) follows the top-level `stack:` in hamon.yml,
-  // else knx. Pick knx or knxultimate only to hold one site on a stack
+  // else knx. With a top-level stack: only "default" is offered (and a save
+  // drops a site's stack: line); without one, knx or knxultimate holds one
+  // site on a stack
   'stack': {
     label: 'KNX stack:',
     type: 'select',

@@ -757,11 +757,19 @@ class ConfigurationForm extends React.Component {
                               </select>
                             );
                           } else if (fieldDefinitionType === "select") {
+                            // with a top-level stack: in hamon.yml every site
+                            // runs on it - only "default" is offered (no site
+                            // can be put back on knx); a save drops any stack: line
+                            const stackFixed = fieldDefinitionKey === "stack" &&
+                              !!this?.state?.configFile?.stack;
+                            const selectValues = stackFixed ? [""] : fieldDefinitionValue.values;
                             fieldComponent = (
                               <select
                                 id={fieldId}
                                 style={{ minWidth: 220 }}
-                                value={fieldValue ?? fieldDefinitionValue.default}
+                                value={stackFixed ? "" : fieldValue ?? fieldDefinitionValue.default}
+                                disabled={stackFixed}
+                                title={stackFixed ? "Set by the top-level stack: in hamon.yml" : undefined}
                                 readOnly={isReadOnly}
                                 onChange={(e) => {
                                   this.setState((prevState) => {
@@ -776,7 +784,7 @@ class ConfigurationForm extends React.Component {
                                   });
                                 }}
                               >
-                                {fieldDefinitionValue.values.map((value) => (
+                                {selectValues.map((value) => (
                                   <option key={value} value={value}>
                                     {value === "" && fieldDefinitionKey === "stack"
                                       ? `default (${effectiveStack({}, this?.state?.configFile)})`
