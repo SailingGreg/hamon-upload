@@ -128,11 +128,10 @@ class ConfigurationForm extends React.Component {
     const dnsEntry = String(location?.dns || "").trim();
     const dnsCheck = this.state?.dnsStatus?.[locationKey];
     const dnsChecked = dnsCheck && dnsCheck.dns === dnsEntry;
+    const noDns = { colour: "amber", tip: "No dns entry - hamon cannot connect", rank: 4 };
     if (!location?.enabled) return { colour: "grey", tip: "Disabled", rank: 5 };
-    if (!dnsEntry)
-      return { colour: "amber", tip: "No dns entry - hamon cannot connect", rank: 4 };
     if (dnsCheck && !dnsChecked)
-      return { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 4 };
+      return dnsEntry ? { colour: "amber", tip: `${dnsEntry} not checked yet - save to check`, rank: 4 } : noDns;
 
     const hamon = this.state?.siteState;
     const st = hamon?.available ? hamon.sites?.[location.name] : null;
@@ -175,6 +174,9 @@ class ConfigurationForm extends React.Component {
           };
       }
     }
+
+    // after hamon's state, so a saved site it holds (misconfigured, say) shows that
+    if (!dnsEntry) return noDns;
 
     // green only when the address is known good: an IPv4 address, or a
     // hostname the backend has resolved

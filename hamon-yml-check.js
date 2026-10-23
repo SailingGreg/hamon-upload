@@ -13,6 +13,9 @@
  *                 the top-level stack:, which every location then runs on),
  *                 a location's stack: that differs from the top-level one,
  *                 secure that isn't true/false, secure without stack knxultimate,
+ *                 secure: true with no KNX Secure gateway stored in
+ *                 .hamon-secrets.json (none at all, or Data Secure keys only -
+ *                 checked when the file can be read),
  *                 a tunnelIA that isn't an individual address,
  *                 a password in plain text (configPass belongs in .hamon-secrets.json),
  *                 a top-level threads: that isn't true/false,
@@ -50,6 +53,10 @@ let doc
 try { doc = yaml.load(raw, { json: true }) } catch (e) {
   console.error('FATAL: could not parse YAML at all:', e.message); process.exit(2)
 }
+
+// the stored secure values (beside hamon.yml), if this user can read them
+let secrets = null
+try { secrets = JSON.parse(fs.readFileSync(path.join(path.dirname(YML), '.hamon-secrets.json'), 'utf8')) } catch (e) { /* not readable */ }
 
 const issues = []
 const review = []
@@ -115,6 +122,12 @@ for (const k of keys) {
   }
   if (loc.secure === true && effectiveStack(loc) !== 'knxultimate') {
     issues.push(`${label(k)}: secure: true needs stack knxultimate (runs on ${effectiveStack(loc)})`)
+  }
+  const stored = secrets && secrets[loc.name] && secrets[loc.name].secure
+  if (secrets && loc.secure === true && !(stored && stored.gateway)) {
+    issues.push(`${label(k)}: secure: true but ` + (stored
+      ? `its project has Data Secure keys only (${Object.keys(stored.groupKeys || {}).length}), no KNX Secure gateway - set secure: false for a plain tunnel`
+      : 'no KNX Secure values stored - upload the site\'s .knxproj in hamon-upload, or set secure: false'))
   }
   if (loc.tunnelIA !== undefined && loc.tunnelIA !== '' && !/^\d{1,2}\.\d{1,2}\.\d{1,3}$/.test(String(loc.tunnelIA))) {
     issues.push(`${label(k)}: tunnelIA '${loc.tunnelIA}' is not an individual address (e.g. 1.1.250)`)
