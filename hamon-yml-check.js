@@ -10,7 +10,8 @@
  *                 location names, identical dns:port+phyAddr (tunnel conflict),
  *                 enabled site with empty dns/config, missing config xml,
  *                 unknown stack (must be knx or knxultimate if present; also
- *                 the top-level stack:, the default for every location),
+ *                 the top-level stack:, which every location then runs on),
+ *                 a location's stack: that differs from the top-level one,
  *                 secure that isn't true/false, secure without stack knxultimate,
  *                 a tunnelIA that isn't an individual address,
  *                 a password in plain text (configPass belongs in .hamon-secrets.json),
@@ -57,9 +58,9 @@ const notes = []
 if (strictErr) issues.push('YAML strict parse failed (duplicate key / syntax): ' + strictErr)
 
 const locations = (doc && doc.locations) || {}
-// the top-level stack: is the default for every location without its own
+// the top-level stack: is every location's; without one, a location's own, else knx
 const topStack = doc && doc.stack
-const effectiveStack = (loc) => loc.stack || topStack || 'knx'
+const effectiveStack = (loc) => topStack || loc.stack || 'knx'
 const keys = Object.keys(locations)
 const label = (k) => `${k}${locations[k] && locations[k].name ? '/' + locations[k].name : ''}`
 
@@ -104,6 +105,10 @@ for (const k of keys) {
   }
   if (loc.stack !== undefined && !['knx', 'knxultimate'].includes(loc.stack)) {
     issues.push(`${label(k)}: unknown stack '${loc.stack}' (knx or knxultimate)`)
+  }
+  // a top-level stack: is every site's: hamon ignores a site's own that differs
+  if (topStack && loc.stack !== undefined && loc.stack !== topStack) {
+    issues.push(`${label(k)}: stack '${loc.stack}' ignored - the top-level stack '${topStack}' applies to every site; remove the line`)
   }
   if (loc.secure !== undefined && typeof loc.secure !== 'boolean') {
     issues.push(`${label(k)}: secure '${loc.secure}' must be true or false`)

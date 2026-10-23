@@ -199,10 +199,10 @@ function projectsToXml(configFile, toSave) {
   })
 }
 
-// the stack a site runs on, as hamon works it out: the site's own stack:,
-// else the top-level stack: in hamon.yml, else knx
+// the stack a site runs on, as hamon works it out: the top-level stack: in
+// hamon.yml, else the site's own stack:, else knx
 function effectiveStack(loc, configFile) {
-  return loc?.stack || configFile?.stack || 'knx'
+  return configFile?.stack || loc?.stack || 'knx'
 }
 
 // the secure entries to store, by location name, for the projects in this
@@ -254,10 +254,12 @@ app.post('/upload-configuration-file', async (req, res) => {
     secureNotes = secure.notes
     // after the secure defaults (which set the stack): secure needs knxultimate.
     // "default" in the form leaves no stack: line, so the site follows the
-    // top-level stack: in hamon.yml
+    // top-level stack: in hamon.yml - and with a top-level stack: set, every
+    // site follows it: a site's own stack: line is dropped, so no site can be
+    // put back on knx (one was on 2026-10-21, and its unsupported DPT crashed hamon)
     for (const k in (configFile?.locations || {})) {
       const loc = configFile.locations[k]
-      if (loc && (loc.stack === '' || loc.stack == null)) delete loc.stack
+      if (loc && (loc.stack === '' || loc.stack == null || configFile.stack)) delete loc.stack
       if (loc?.secure === true && effectiveStack(loc, configFile) !== 'knxultimate') {
         return res.json({ success: false, msg: `Not saved: ${loc.name}: KNX Secure needs the knxultimate stack - set KNX stack to knxultimate, or KNX Secure to false` })
       }
