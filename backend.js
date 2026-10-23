@@ -223,7 +223,13 @@ function pendingSecure(configFile, toSave) {
       const { entry, error, tunnelIA, defaulted } = secureEntryFor(secure, loc, loc.config)
       if (error) return { error }
       byName[loc.name] = entry
-      if (!entry.gateway) continue   // Data Secure keys only, no secure gateway
+      if (!entry.gateway) {   // Data Secure keys only, no secure gateway: a plain tunnel
+        const keys = Object.keys(entry.groupKeys).length
+        notes.push(`${loc.name}: ${keys} Data Secure group key${keys === 1 ? '' : 's'} stored; the project has no ` +
+          'KNX Secure gateway, so the site stays on a plain tunnel' +
+          (loc.secure === true ? ' - set KNX Secure to false, or hamon holds the site as misconfigured' : ''))
+        continue
+      }
       const set = []
       if (effectiveStack(loc, configFile) !== 'knxultimate') { loc.stack = 'knxultimate'; set.push('stack knxultimate') }
       if (loc.secure === undefined) { loc.secure = true; set.push('KNX Secure true') }
