@@ -268,6 +268,12 @@ class ConfigurationForm extends React.Component {
     for (const [key, loc] of locations) {
       dotCounts[this.siteStatus(key, loc).colour]++;
     }
+    // tunnelling v2 gateways (hamon's detection) and sites set to TCP, to audit
+    // one against the other
+    const tunnelVersionOf = (loc) => this.state?.siteState?.sites?.[loc?.name]?.tunnelVersion;
+    const onTcp = (loc) => String(loc?.transport || "").toLowerCase() === "tcp";
+    const v2Count = locations.filter(([, loc]) => tunnelVersionOf(loc) >= 2).length;
+    const tcpCount = locations.filter(([, loc]) => onTcp(loc)).length;
     const hamonState = this.state?.siteState;
 
     const onSubmit = (e) => {
@@ -487,7 +493,7 @@ class ConfigurationForm extends React.Component {
         <div className={styles["site-counts"]}>
           {locations.length} sites · {dotCounts.green} green · {dotCounts.blue} blue ·{" "}
           {dotCounts.red} red · {dotCounts.purple} purple · {dotCounts.amber} amber ·{" "}
-          {dotCounts.grey} grey
+          {dotCounts.grey} grey · {v2Count} v2 · {tcpCount} on TCP
         </div>
         <div className={styles["site-legend"]}>
           green connected · blue connecting · red off-line · purple misconfigured ·
@@ -597,6 +603,12 @@ class ConfigurationForm extends React.Component {
                           />
                         )} */}
                       </span>
+                      {(tunnelVersionOf(location) || onTcp(location)) && (
+                        <div style={{ fontSize: 11, lineHeight: 1.2 }}>
+                          {tunnelVersionOf(location) ? `v${tunnelVersionOf(location)}` : ""}
+                          {onTcp(location) ? " TCP" : ""}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className={styles["configuration-location-title"]}>
