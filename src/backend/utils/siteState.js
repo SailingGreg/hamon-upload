@@ -44,4 +44,33 @@ function siteState(file) {
   }
 }
 
-module.exports = { siteState, hamonAlive }
+// The sites the freshness detector is restarting because no data arrives, from
+// its tmp/freshness-state: "<site> <last restart> <restarts> <last data>" (epoch
+// seconds; last data 0 = before its 24 h window, missing on an older detector).
+// hamon can still hold the tunnel for these, so they show as connected there.
+// { <site name>: { restarts, lastRestart, lastData } }; {} when there's no file,
+// or when it's older than STALLED_MAX_AGE_MS (the detector has stopped running)
+const STALLED_MAX_AGE_MS = 20 * 60 * 1000 // the detector runs every 5 min
+function stalledSites(file) {
+  let text
+  try {
+    if (Date.now() - fs.statSync(file).mtimeMs > STALLED_MAX_AGE_MS) return {}
+    text = fs.readFileSync(file, 'utf8')
+  } catch (err) {
+    return {}
+  }
+  const iso = (secs) => (secs > 0 ? new Date(secs * 1000).toISOString() : null)
+  const sites = {}
+  for (const line of text.split('\n')) {
+    const [name, restart, restarts, data] = line.trim().split(/\s+/)
+    if (!name || !/^\d+$/.test(restart || '')) continue
+    sites[name] = {
+      restarts: Number(restarts) || 0,
+      lastRestart: iso(Number(restart)),
+      lastData: data === undefined ? undefined : iso(Number(data)),
+    }
+  }
+  return sites
+}
+
+module.exports = { siteState, hamonAlive, stalledSites }

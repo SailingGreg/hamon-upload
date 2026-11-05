@@ -20,7 +20,7 @@ const { etsProjectParser } = require('./src/backend/utils/etsProjectParser');
 const { maskSecrets, extractSecrets, writePrivateJson } = require('./src/backend/utils/secretStore');
 const { describeSecure, secureEntryFor } = require('./src/backend/utils/etsSecure');
 const { dnsStatus } = require('./src/backend/utils/dnsStatus');
-const { siteState } = require('./src/backend/utils/siteState');
+const { siteState, stalledSites } = require('./src/backend/utils/siteState');
 const { recheck } = require('./src/backend/utils/recheck');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -427,12 +427,14 @@ app.get('/dns-status', async (req, res) => {
 
 // hamon's own view of each site (connected / starting / down / misconfigured / blocked /
 // disabled) for the status dots, from the state file ha-mon keeps beside
-// hamon.yml. Read-only; { available: false } if ha-mon hasn't written one
+// hamon.yml, plus the sites the freshness detector is restarting for want of
+// data (stalled). Read-only; { available: false } if ha-mon hasn't written one
 app.get('/site-state', async (req, res) => {
   if (!(await isAuthenticated(req))) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
-  return res.json(siteState(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/tmp/site-state.json`))
+  const dir = `${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/tmp`
+  return res.json({ ...siteState(`${dir}/site-state.json`), stalled: stalledSites(`${dir}/freshness-state`) })
 });
 
 // Re-check button on a blocked site: ha-mon re-checks it now (DNS, then

@@ -42,6 +42,12 @@
   background-color: #FFB000;
 }
 
+/* stalled: hamon holds the tunnel but no data arrives, and the freshness
+   detector is restarting the site */
+.bg-orange {
+  background-color: #E67E22;
+}
+
 /* hamon has stopped the site because its configuration can't work (KNX
    Secure values missing, GA file missing or empty) - fix it and save */
 .bg-purple {
