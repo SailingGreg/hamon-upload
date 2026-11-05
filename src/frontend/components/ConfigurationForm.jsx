@@ -146,7 +146,7 @@ class ConfigurationForm extends React.Component {
       if (stalled) {
         const n = stalled.restarts;
         return {
-          colour: "orange",
+          colour: "stalled",
           tip: `${stale}Stalled: connected but no data ` +
             (stalled.lastData === null ? "for over 24 h" : stalled.lastData ? `since ${when(stalled.lastData)}` : "") +
             ` - restarted ${n} time${n === 1 ? "" : "s"} by the detector, last ${when(stalled.lastRestart)}. ` +
@@ -269,7 +269,7 @@ class ConfigurationForm extends React.Component {
         return 0;
       }
 
-      // same order as the dot colours: green, blue, red, orange, purple, amber, grey (ASC)
+      // same order as the dots: green, blue, red, stalled, purple, amber, grey (ASC)
       const rank = ([key, loc]) => this.siteStatus(key, loc).rank;
       const result = rank(a) - rank(b);
       return sortStatusDir === "ASC" ? result : -result;
@@ -278,7 +278,7 @@ class ConfigurationForm extends React.Component {
     const fieldsDefinitionArray = Object.entries(fieldsDefinition);
 
     // one count per dot colour, so they always add up to the total
-    const dotCounts = { green: 0, blue: 0, red: 0, orange: 0, purple: 0, amber: 0, grey: 0 };
+    const dotCounts = { green: 0, blue: 0, red: 0, stalled: 0, purple: 0, amber: 0, grey: 0 };
     for (const [key, loc] of locations) {
       dotCounts[this.siteStatus(key, loc).colour]++;
     }
@@ -506,12 +506,12 @@ class ConfigurationForm extends React.Component {
         </div>
         <div className={styles["site-counts"]}>
           {locations.length} sites · {dotCounts.green} green · {dotCounts.blue} blue ·{" "}
-          {dotCounts.red} red · {dotCounts.orange} orange · {dotCounts.purple} purple ·{" "}
+          {dotCounts.red} red · {dotCounts.stalled} stalled · {dotCounts.purple} purple ·{" "}
           {dotCounts.amber} amber ·{" "}
           {dotCounts.grey} grey · {v2Count} v2 · {tcpCount} on TCP
         </div>
         <div className={styles["site-legend"]}>
-          green connected · blue connecting · red off-line · orange stalled (no data) ·
+          green connected · blue connecting · red off-line · red ring stalled (connected, no data) ·
           purple misconfigured · amber blocked · grey disabled
         </div>
         {hamonState?.available && !hamonState.running && (

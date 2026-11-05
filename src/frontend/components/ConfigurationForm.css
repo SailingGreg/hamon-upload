@@ -43,9 +43,11 @@
 }
 
 /* stalled: hamon holds the tunnel but no data arrives, and the freshness
-   detector is restarting the site */
-.bg-orange {
-  background-color: #E67E22;
+   detector is restarting the site - a red ring (connected, but empty), so it
+   can't be mistaken for amber */
+.bg-stalled {
+  background-color: #FFFFFF;
+  box-shadow: inset 0 0 0 5px #C0392B;
 }
 
 /* hamon has stopped the site because its configuration can't work (KNX
