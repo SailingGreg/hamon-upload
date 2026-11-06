@@ -151,7 +151,8 @@ class ConfigurationForm extends React.Component {
         return {
           colour: "stalled",
           tip: `${stale}Silent: connected but no data ${since}` +
-            (silent.held ? " - restarts held while the server's own uplink is down" :
+            (silent.grace ? ` - new site, not restarted until ${when(silent.grace)}` :
+              silent.held ? " - restarts held while the server's own uplink is down" :
               act ? ` - restarted ${n(silent.restarts)} by hamon` + (silent.next ? `, next ${when(silent.next)}` : "") :
               ` - hamon would have restarted it ${n(silent.restarts)} (report only, the detector restarts it)`) +
             ". If it stays like this, check the site (bus power, gateway)",
