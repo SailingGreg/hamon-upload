@@ -140,16 +140,31 @@ class ConfigurationForm extends React.Component {
       const last = st.lastConnected
         ? `; last connected ${when(st.lastConnected)}`
         : "; no connection recorded";
-      // hamon holds the tunnel, but no data comes and the freshness detector is
-      // restarting it - green would hide that
-      const stalled = st.state === "connected" && hamon.stalled?.[location.name];
-      if (stalled) {
-        const n = stalled.restarts;
+      // hamon holds the tunnel, but no data comes - green would hide that.
+      // hamon's own silence check (site-state.json `silent`) when it has one;
+      // otherwise the freshness detector's restarts (silence: off in hamon.yml)
+      const n = (k) => `${k} time${k === 1 ? "" : "s"}`;
+      const silent = st.state === "connected" ? st.silent : null;
+      if (silent) {
+        const act = this.state?.configFile?.silence === "act";
+        const since = st.lastData ? `since ${when(st.lastData)}` : `since ha-mon connected it ${when(st.since)}`;
         return {
           colour: "stalled",
-          tip: `${stale}Stalled: connected but no data ` +
+          tip: `${stale}Silent: connected but no data ${since}` +
+            (silent.held ? " - restarts held while the server's own uplink is down" :
+              act ? ` - restarted ${n(silent.restarts)} by hamon` + (silent.next ? `, next ${when(silent.next)}` : "") :
+              ` - hamon would have restarted it ${n(silent.restarts)} (report only, the detector restarts it)`) +
+            ". If it stays like this, check the site (bus power, gateway)",
+          rank: 2.5,
+        };
+      }
+      const stalled = st.state === "connected" && hamon.stalled?.[location.name];
+      if (stalled) {
+        return {
+          colour: "stalled",
+          tip: `${stale}Silent: connected but no data ` +
             (stalled.lastData === null ? "for over 24 h" : stalled.lastData ? `since ${when(stalled.lastData)}` : "") +
-            ` - restarted ${n} time${n === 1 ? "" : "s"} by the detector, last ${when(stalled.lastRestart)}. ` +
+            ` - restarted ${n(stalled.restarts)} by the detector, last ${when(stalled.lastRestart)}. ` +
             "If it stays like this, check the site (bus power, gateway)",
           rank: 2.5,
         };
@@ -506,12 +521,12 @@ class ConfigurationForm extends React.Component {
         </div>
         <div className={styles["site-counts"]}>
           {locations.length} sites · {dotCounts.green} green · {dotCounts.blue} blue ·{" "}
-          {dotCounts.red} red · {dotCounts.stalled} stalled · {dotCounts.purple} purple ·{" "}
+          {dotCounts.red} red · {dotCounts.stalled} silent · {dotCounts.purple} purple ·{" "}
           {dotCounts.amber} amber ·{" "}
           {dotCounts.grey} grey · {v2Count} v2 · {tcpCount} on TCP
         </div>
         <div className={styles["site-legend"]}>
-          green connected · blue connecting · red off-line · red ring stalled (connected, no data) ·
+          green connected · blue connecting · red off-line · red ring silent (connected, no data) ·
           purple misconfigured · amber blocked · grey disabled
         </div>
         {hamonState?.available && !hamonState.running && (
