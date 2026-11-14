@@ -22,6 +22,7 @@ const { describeSecure, secureEntryFor } = require('./src/backend/utils/etsSecur
 const { dnsStatus } = require('./src/backend/utils/dnsStatus');
 const { siteState, stalledSites } = require('./src/backend/utils/siteState');
 const { recheck } = require('./src/backend/utils/recheck');
+const { AccessLog, clientIp, configChanges } = require('./src/backend/utils/accessLog');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // for production
@@ -47,6 +48,8 @@ const READ_CONFIGURATION_FILE_FROM = __dirname + '/../hamon'
 const SECRETS_FILE = CONFIGURATION_FILE_LOCATION + '/.hamon-secrets.json'
 // const READ_CONFIGURATION_FILE_FROM = __dirname + '/example-files'
 const SECURITY_COOKIE_NAME = 'grafana_session'
+// who used the app (logs/access.jsonl, git-ignored): see accessLog.js
+const accessLog = new AccessLog(process.env.ACCESS_LOG || __dirname + '/logs/access.jsonl')
 //--- !!!! END OF CONFIGURATION !!!! ---//
 
 app.use(express.static(__dirname + '/dist'));
@@ -78,38 +81,73 @@ const GRAFANA_AUTH_PORT = process.env.GRAFANA_AUTH_PORT || 3000
 // 'http' once Grafana sits behind nginx on plain http
 const GRAFANA_AUTH_PROTO = process.env.GRAFANA_AUTH_PROTO || 'https'
 
-function isAuthenticated(req) {
-  // Development is served over plain HTTP locally with no Grafana to validate
-  // against, so skip the live check to keep the dev workflow usable.
-  if (NODE_ENV === 'development') return Promise.resolve(true)
-
+// GET a Grafana API path with the session cookie: { status, body } (body
+// parsed JSON, or null)
+function grafanaGet(apiPath, token) {
   return new Promise((resolve) => {
-    const token = req.cookies[SECURITY_COOKIE_NAME]
-    if (!token) return resolve(false)
-
     const gReq = (GRAFANA_AUTH_PROTO === 'http' ? http : https).request({
       host: GRAFANA_AUTH_HOST,
       port: GRAFANA_AUTH_PORT,
-      path: '/api/user',
+      path: apiPath,
       method: 'GET',
       headers: { Cookie: `${SECURITY_COOKIE_NAME}=${token}` },
       rejectUnauthorized: false, // loopback cert is issued for the public domain
       timeout: 3000,
     }, (gRes) => {
-      gRes.resume() // drain the response
-      resolve(gRes.statusCode === 200)
+      let data = ''
+      gRes.setEncoding('utf8')
+      gRes.on('data', (c) => { if (data.length < 65536) data += c })
+      gRes.on('end', () => {
+        let body = null
+        try { body = JSON.parse(data) } catch (e) { /* not JSON */ }
+        resolve({ status: gRes.statusCode, body })
+      })
     })
     gReq.on('error', (err) => {
       console.error('Grafana auth validation failed:', err.message)
-      resolve(false)
+      resolve({ status: 0, body: null })
     })
     gReq.on('timeout', () => {
       gReq.destroy()
       console.error('Grafana auth validation timed out')
-      resolve(false)
+      resolve({ status: 0, body: null })
     })
     gReq.end()
   })
+}
+
+// a user's org role (Admin/Editor/Viewer) seldom changes: ask Grafana once
+// every 10 minutes per user
+const roleCache = new Map() // user id -> { role, at }
+async function roleOf(user, token) {
+  const c = roleCache.get(user.id)
+  if (c != null && Date.now() - c.at < 10 * 60 * 1000) return c.role
+  const r = await grafanaGet('/api/user/orgs', token)
+  const org = Array.isArray(r.body) ? (r.body.find((o) => o.orgId === user.orgId) || r.body[0]) : null
+  const role = org && org.role ? org.role : 'unknown'
+  if (r.status === 200) roleCache.set(user.id, { role, at: Date.now() })
+  return role
+}
+
+// the logged-in Grafana user for this request, or null. Any logged-in user is
+// let in, as before; who it was and their role go to the access log so the
+// role mapping can be decided from use. `route` names the endpoint in the log
+async function isAuthenticated(req, route = '') {
+  // Development is served over plain HTTP locally with no Grafana to validate
+  // against, so skip the live check to keep the dev workflow usable.
+  if (NODE_ENV === 'development') return { id: 0, login: 'dev', role: 'Admin', isGrafanaAdmin: false }
+
+  const ip = clientIp(req)
+  const token = req.cookies[SECURITY_COOKIE_NAME]
+  if (!token) { accessLog.refused(ip, 'no session', route); return null }
+  const r = await grafanaGet('/api/user', token)
+  if (r.status !== 200 || !r.body || r.body.id == null) {
+    accessLog.refused(ip, r.status === 0 ? 'grafana unreachable' : `session refused (${r.status})`, route)
+    return null
+  }
+  const user = { id: r.body.id, login: r.body.login, orgId: r.body.orgId, isGrafanaAdmin: !!r.body.isGrafanaAdmin }
+  user.role = await roleOf(user, token)
+  return user
 }
 
 function saveFile(basePath, fileName, file, disableBackup = false) {
@@ -241,7 +279,8 @@ function pendingSecure(configFile, toSave) {
 }
 
 app.post('/upload-configuration-file', async (req, res) => {
-  if (!(await isAuthenticated(req))) {
+  const user = await isAuthenticated(req, 'upload-configuration-file')
+  if (!user) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
   let configurationFile
@@ -249,6 +288,7 @@ app.post('/upload-configuration-file', async (req, res) => {
   let toMove = toSave
   let pending = []
   let secureNotes = []
+  let changes = ''
   try {
     const configFile = enforceNewLocationNames(req?.body?.configFile,
       `${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`)
@@ -272,6 +312,9 @@ app.post('/upload-configuration-file', async (req, res) => {
     }
     extractSecrets(configFile, SECRETS_FILE, CONFIGURATION_FILE_LOCATION, secure.byName)
     configurationFile = yaml.dump(configFile)
+    try { // what this save changes, for the access log
+      changes = configChanges(yaml.load(fs.readFileSync(`${CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8')), configFile)
+    } catch (err) { changes = 'changes unknown' }
   } catch (err) {
     console.error(err)
     // don't save hamon.yml without its passwords stored
@@ -293,13 +336,15 @@ app.post('/upload-configuration-file', async (req, res) => {
   }
 
   saveFile(CONFIGURATION_FILE_LOCATION, CONFIGURATION_FILE_NAME, configurationFile)
+  accessLog.change(user, clientIp(req), 'save', changes)
   // stored (or not wanted by any site): the waiting secure values go
   for (const p of pending) fs.rmSync(p, { force: true })
   return res.json({ success: true, msg: ["File saved successfully", ...secureNotes].join('\n') });
 });
 
 app.post('/upload-location-configuration-file', async (req, res) => {
-  if (!(await isAuthenticated(req))) {
+  const user = await isAuthenticated(req, 'upload-location-configuration-file')
+  if (!user) {
     return res.status(401).json({ success: false, msg: 'You are not logged in' })
   }
   const file = req?.files?.configFile
@@ -310,6 +355,7 @@ app.post('/upload-location-configuration-file', async (req, res) => {
   }
 
   saveFile(LOCATION_CONFIGURATION_FILES_LOCATION, file.name, file?.data, true)
+  accessLog.change(user, clientIp(req), 'upload', file.name)
 
   if (path.extname(file?.name) === '.knxproj') {
     // console.log('knx project file', LOCATION_CONFIGURATION_FILES_LOCATION)
@@ -365,9 +411,11 @@ app.post('/upload-location-configuration-file', async (req, res) => {
 });
 
 app.get('/load-configuration-file', async (req, res) => {
-  if (!(await isAuthenticated(req))) {
+  const user = await isAuthenticated(req, 'load-configuration-file')
+  if (!user) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
+  accessLog.visit(user, clientIp(req))
   let configFile
   try {
     configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
@@ -413,9 +461,11 @@ app.get('/load-configuration-file', async (req, res) => {
 // DNS check for the status dots: amber = enabled but the dns entry does not
 // resolve, so hamon cannot connect. Reads the on-disk hamon.yml
 app.get('/dns-status', async (req, res) => {
-  if (!(await isAuthenticated(req))) {
+  const user = await isAuthenticated(req, 'dns-status')
+  if (!user) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
+  accessLog.visit(user, clientIp(req))
   let configFile
   try {
     configFile = yaml.load(fs.readFileSync(`${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/${CONFIGURATION_FILE_NAME}`, 'utf8'));
@@ -430,9 +480,11 @@ app.get('/dns-status', async (req, res) => {
 // hamon.yml, plus the sites the freshness detector is restarting for want of
 // data (stalled). Read-only; { available: false } if ha-mon hasn't written one
 app.get('/site-state', async (req, res) => {
-  if (!(await isAuthenticated(req))) {
+  const user = await isAuthenticated(req, 'site-state')
+  if (!user) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
+  accessLog.visit(user, clientIp(req))
   const dir = `${READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION}/tmp`
   return res.json({ ...siteState(`${dir}/site-state.json`), stalled: stalledSites(`${dir}/freshness-state`) })
 });
@@ -440,7 +492,8 @@ app.get('/site-state', async (req, res) => {
 // Re-check button on a blocked site: ha-mon re-checks it now (DNS, then
 // whether its gateway answers) by way of tmp/kpipe
 app.post('/recheck-site', async (req, res) => {
-  if (!(await isAuthenticated(req))) {
+  const user = await isAuthenticated(req, 'recheck-site')
+  if (!user) {
     return res.status(401).json({ error: 'You are not logged in' })
   }
   const dir = READ_CONFIGURATION_FILE_FROM || CONFIGURATION_FILE_LOCATION
@@ -450,7 +503,9 @@ app.post('/recheck-site', async (req, res) => {
   } catch (err) {
     return res.json({ success: false, msg: 'Configuration file not found' })
   }
-  return res.json(recheck(`${dir}/tmp/kpipe`, req?.body?.name, configFile.locations))
+  const result = recheck(`${dir}/tmp/kpipe`, req?.body?.name, configFile.locations)
+  accessLog.change(user, clientIp(req), 'recheck', String(req?.body?.name || ''))
+  return res.json(result)
 });
 
 // Behind nginx (TLS=0) this serves plain http, and LISTEN_HOST=127.0.0.1 keeps
